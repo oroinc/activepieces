@@ -14,7 +14,7 @@ export const API_BASE_URL =
   import.meta.env.MODE === 'cloud'
     ? 'https://cloud.activepieces.com'
     : window.location.origin;
-export const API_URL = `${API_BASE_URL}/api`;
+export const API_URL = `${API_BASE_URL}${import.meta.env.BASE_URL}api`;
 
 const disallowedRoutes = [
   '/v1/managed-authn/external-token',

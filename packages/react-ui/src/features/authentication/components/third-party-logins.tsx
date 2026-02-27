@@ -47,7 +47,9 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
   };
 
   const signInWithSaml = () =>
-    (window.location.href = '/api/v1/authn/saml/login');
+    (window.location.href = `${
+      import.meta.env.BASE_URL
+    }api/v1/authn/saml/login`);
 
   return (
     <div className="flex flex-col gap-4">

@@ -12,12 +12,11 @@ export const useNewWindow = () => {
         search: searchParams,
       });
   } else {
-    return (route: string, searchParams?: string) =>
-      window.open(
-        `${route}${searchParams ? '?' + searchParams : ''}`,
-        '_blank',
-        'noopener noreferrer',
-      );
+    return (route: string, searchParams?: string) => {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const url = `${base}${route}${searchParams ? '?' + searchParams : ''}`;
+      window.open(url, '_blank', 'noopener noreferrer');
+    };
   }
 };
 

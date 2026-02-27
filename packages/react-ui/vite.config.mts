@@ -17,17 +17,24 @@ export default defineConfig(({ command, mode }) => {
     ? 'https://activepieces.com/favicon.ico'
     : '${AP_FAVICON_URL}';
 
+  const AP_ASSETS_PREFIX = isDev
+    ? process.env.AP_ASSETS_PREFIX ?? ''
+    : '${AP_ASSETS_PREFIX}';
+
+  const base = AP_ASSETS_PREFIX ? `/${AP_ASSETS_PREFIX}/` : '/';
+
   return {
+    base,
     root: __dirname,
     cacheDir: '../../node_modules/.vite/packages/react-ui',
     server: {
-      // allowedHosts: ['wozcsvaint.loclx.io'],
+      allowedHosts: ['commerce-crm-ee.master.loc'],
       proxy: {
-        '/api': {
+        [`${base}api`]: {
           target: 'http://127.0.0.1:3000',
           secure: false,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (path) => path.replace(new RegExp(`^${base}api`), ''),
           headers: {
             Host: '127.0.0.1:4200',
           },
@@ -70,6 +77,7 @@ export default defineConfig(({ command, mode }) => {
       customHtmlPlugin({
         title: AP_TITLE,
         icon: AP_FAVICON,
+        base,
       }),
       checker({
         typescript: {

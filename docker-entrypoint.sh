@@ -3,13 +3,15 @@
 # Set default values if not provided
 export AP_APP_TITLE="${AP_APP_TITLE:-Activepieces}"
 export AP_FAVICON_URL="${AP_FAVICON_URL:-https://cdn.activepieces.com/brand/favicon.ico}"
+export AP_ASSETS_PREFIX="${AP_ASSETS_PREFIX:-}"
 
 # Debug: Print environment variables
 echo "AP_APP_TITLE: $AP_APP_TITLE"
 echo "AP_FAVICON_URL: $AP_FAVICON_URL"
+echo "AP_ASSETS_PREFIX: $AP_ASSETS_PREFIX"
 
 # Process environment variables in index.html BEFORE starting services
-envsubst '${AP_APP_TITLE} ${AP_FAVICON_URL}' < /usr/share/nginx/html/index.html > /usr/share/nginx/html/index.html.tmp && \
+envsubst '${AP_APP_TITLE} ${AP_FAVICON_URL} ${AP_ASSETS_PREFIX}' < /usr/share/nginx/html/index.html > /usr/share/nginx/html/index.html.tmp && \
 mv /usr/share/nginx/html/index.html.tmp /usr/share/nginx/html/index.html
 
 

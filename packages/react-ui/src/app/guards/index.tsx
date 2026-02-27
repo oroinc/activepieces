@@ -9,6 +9,7 @@ import {
 import { PageTitle } from '@/app/components/page-title';
 import { ChatPage } from '@/app/routes/chat';
 import { EmbedPage } from '@/app/routes/embed';
+import { EmbedCePage } from '@/app/routes/embed-ce';
 import AnalyticsPage from '@/app/routes/impact';
 import { ApiKeysPage } from '@/app/routes/platform/security/api-keys';
 import { SigningKeysPage } from '@/app/routes/platform/security/signing-keys';
@@ -90,6 +91,10 @@ const routes = [
   {
     path: '/embed/connections',
     element: <EmbeddedConnectionDialog></EmbeddedConnectionDialog>,
+  },
+  {
+    path: '/embed-ce',
+    element: <EmbedCePage />,
   },
   {
     path: '/authenticate',
@@ -601,7 +606,9 @@ const routes = [
 ];
 
 export const memoryRouter = createMemoryRouter(routes);
-const browserRouter = createBrowserRouter(routes);
+const browserRouter = createBrowserRouter(routes, {
+  basename: import.meta.env.BASE_URL,
+});
 
 const ApRouter = () => {
   const { embedState } = useEmbedding();

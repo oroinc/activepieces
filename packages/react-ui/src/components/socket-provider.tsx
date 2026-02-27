@@ -7,7 +7,7 @@ import { authenticationSession } from '@/lib/authentication-session';
 
 const socket = io(API_BASE_URL, {
   transports: ['websocket'],
-  path: '/api/socket.io',
+  path: `${import.meta.env.BASE_URL}api/socket.io`,
   autoConnect: false,
   reconnection: true,
 });

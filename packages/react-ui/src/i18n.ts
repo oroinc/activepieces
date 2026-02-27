@@ -20,5 +20,8 @@ i18n
     keySeparator: false,
     nsSeparator: false,
     returnEmptyString: false,
+    backend: {
+      loadPath: `${import.meta.env.BASE_URL}locales/{{lng}}/{{ns}}.json`,
+    },
   });
 export default i18n;
