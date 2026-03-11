@@ -108,13 +108,16 @@ const EmbedCePage = React.memo(() => {
       return;
     }
 
+    // Notify listeners (e.g. telemetry-provider) that auth state is available,
+    // mirroring the window.dispatchEvent(new Event('storage')) call inside
+    // authenticationSession.saveResponse that EmbedPage triggers.
+    window.dispatchEvent(new Event('storage'));
+
     if (event.data.data.mode) {
       setTheme(event.data.data.mode);
     }
 
-    if (event.data.data.locale) {
-      i18n.changeLanguage(event.data.data.locale);
-    }
+    i18n.changeLanguage(event.data.data.locale ?? 'en');
 
     const configuredRoute = event.data.data.initialRoute ?? '/';
     const defaultRoute = determineDefaultRoute(checkAccess);

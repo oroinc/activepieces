@@ -89,7 +89,7 @@ export const authenticationSession = {
     });
     ApStorage.getInstance().setItem(tokenKey, result.token);
     ApStorage.getInstance().setItem(projectIdKey, result.projectId);
-    window.location.href = '/';
+    window.location.href = import.meta.env.BASE_URL;
   },
   switchToProject(projectId: string) {
     if (authenticationSession.getProjectId() === projectId) {
@@ -111,7 +111,7 @@ export const authenticationSession = {
   },
   logOut() {
     this.clearSession();
-    window.location.href = '/sign-in';
+    window.location.href = `${import.meta.env.BASE_URL}sign-in`;
   },
 };
 

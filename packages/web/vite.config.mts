@@ -3,13 +3,16 @@ import path from 'path';
 
 import tsconfigPaths from 'vite-tsconfig-paths';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import checker from 'vite-plugin-checker';
 import tailwindcss from '@tailwindcss/vite';
 import customHtmlPlugin from './vite-plugins/html-plugin';
 
 export default defineConfig(({ command, mode }) => {
   const isDev = command === 'serve' || mode === 'development';
+
+  // Load env vars from the monorepo root .env file (not just shell environment)
+  const rootEnv = isDev ? loadEnv(mode, path.resolve(__dirname, '../..'), '') : {};
 
   const AP_TITLE = isDev ? 'Activepieces' : '${AP_APP_TITLE}';
 
@@ -18,7 +21,7 @@ export default defineConfig(({ command, mode }) => {
     : '${AP_FAVICON_URL}';
 
   const AP_ASSETS_PREFIX = isDev
-    ? process.env.AP_ASSETS_PREFIX ?? ''
+    ? process.env.AP_ASSETS_PREFIX ?? rootEnv.AP_ASSETS_PREFIX ?? ''
     : '${AP_ASSETS_PREFIX}';
 
   const base = AP_ASSETS_PREFIX ? `/${AP_ASSETS_PREFIX}/` : '/';
