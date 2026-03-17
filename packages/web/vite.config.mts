@@ -14,11 +14,8 @@ export default defineConfig(({ command, mode }) => {
   // Load env vars from the monorepo root .env file (not just shell environment)
   const rootEnv = isDev ? loadEnv(mode, path.resolve(__dirname, '../..'), '') : {};
 
-  const AP_TITLE = isDev ? 'Activepieces' : '${AP_APP_TITLE}';
-
-  const AP_FAVICON = isDev
-    ? 'https://activepieces.com/favicon.ico'
-    : '${AP_FAVICON_URL}';
+  const AP_TITLE = 'Activepieces';
+  const AP_FAVICON = 'https://activepieces.com/favicon.ico';
 
   const AP_ASSETS_PREFIX = isDev
     ? process.env.AP_ASSETS_PREFIX ?? rootEnv.AP_ASSETS_PREFIX ?? ''
