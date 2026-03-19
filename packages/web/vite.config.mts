@@ -1,9 +1,12 @@
 /// <reference types='vitest' />
 import path from 'path';
+// CUSTOMIZATION START: embedding >>
+import donenv from 'dotenv';
+// << CUSTOMIZATION END: embedding
 
 import tsconfigPaths from 'vite-tsconfig-paths';
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import checker from 'vite-plugin-checker';
 import tailwindcss from '@tailwindcss/vite';
 import customHtmlPlugin from './vite-plugins/html-plugin';
@@ -11,30 +14,37 @@ import customHtmlPlugin from './vite-plugins/html-plugin';
 export default defineConfig(({ command, mode }) => {
   const isDev = command === 'serve' || mode === 'development';
 
-  // Load env vars from the monorepo root .env file (not just shell environment)
-  const rootEnv = isDev ? loadEnv(mode, path.resolve(__dirname, '../..'), '') : {};
-
   const AP_TITLE = 'Activepieces';
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';
 
-  const AP_ASSETS_PREFIX = isDev
-    ? process.env.AP_ASSETS_PREFIX ?? rootEnv.AP_ASSETS_PREFIX ?? ''
-    : '${AP_ASSETS_PREFIX}';
-
-  const base = AP_ASSETS_PREFIX ? `/${AP_ASSETS_PREFIX}/` : '/';
+  // CUSTOMIZATION START: embedding >>
+  // TODO: we will need to support real .env files loading?
+  donenv.config({ path: path.resolve(__dirname, '../../.env.dev') });
+  let base = '/';
+  const allowedHosts = [];
+  if (process.env.AP_FRONTEND_URL) {
+    const AP_FRONTEND_URL = new URL(process.env.AP_FRONTEND_URL);
+    const AP_ASSETS_PREFIX = AP_FRONTEND_URL.pathname.replace(/^\/|\/$/, '');
+    allowedHosts.push(AP_FRONTEND_URL.host);
+    base = `/${AP_ASSETS_PREFIX}/`;
+  }
+  // << CUSTOMIZATION END: embedding
 
   return {
     base,
     root: __dirname,
     cacheDir: '../../node_modules/.vite/packages/web',
     server: {
-      allowedHosts: ['commerce-crm-ee.master.loc'],
+      // CUSTOMIZATION START: embedding >>
+      allowedHosts: allowedHosts,
+      // << CUSTOMIZATION END: embedding
       proxy: {
+        // CUSTOMIZATION START: embedding >>
         [`${base}api`]: {
+          // << CUSTOMIZATION END: embedding
           target: 'http://127.0.0.1:3000',
           secure: false,
           changeOrigin: true,
-          rewrite: (path) => path.replace(new RegExp(`^${base}api`), ''),
           headers: {
             Host: '127.0.0.1:4200',
           },
@@ -73,7 +83,9 @@ export default defineConfig(({ command, mode }) => {
       customHtmlPlugin({
         title: AP_TITLE,
         icon: AP_FAVICON,
+        // CUSTOMIZATION START: embedding >>
         base,
+        // << CUSTOMIZATION END: embedding
       }),
       ...(isDev
         ? [
