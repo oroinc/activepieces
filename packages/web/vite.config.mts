@@ -49,6 +49,11 @@ export default defineConfig(({ command, mode }) => {
             Host: '127.0.0.1:4200',
           },
           ws: true,
+          // CUSTOMIZATION: strip the frontend base prefix before forwarding to
+          // the backend (which only knows /api/..., not /<base>/api/...).
+          // Works for base='/' (identity) and base='/prefix/' (strips prefix).
+          rewrite: (path: string) => '/' + path.slice(base.length),
+          // << CUSTOMIZATION END
         },
         '^/mcp$': {
           target: 'http://127.0.0.1:3000',
@@ -133,11 +138,19 @@ export default defineConfig(({ command, mode }) => {
       ...(isDev
         ? [
             checker({
+              // CUSTOMIZATION START: embedding >>
+              // Use tsconfig.app.json directly (buildMode: false) to avoid
+              // tsconfig.spec.json (module: commonjs, no @/* paths) being
+              // checked during dev serve. The upstream test suite
+              // dynamically imports source files that use import.meta.env
+              // and @/ aliases, both of which are incompatible with the
+              // spec tsconfig's commonjs module setting.
               typescript: {
-                buildMode: true,
-                tsconfigPath: './tsconfig.json',
+                buildMode: false,
+                tsconfigPath: './tsconfig.app.json',
                 root: __dirname,
               },
+              // << CUSTOMIZATION END: embedding
             }),
           ]
         : []),

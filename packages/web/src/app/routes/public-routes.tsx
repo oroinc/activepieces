@@ -10,9 +10,9 @@ import NotFoundPage from './404-page';
 import AuthenticatePage from './authenticate';
 import { EmbedPage } from './embed';
 import { EmbeddedConnectionDialog } from './embed/embedded-connection-dialog';
+import { EmbedCePage } from './embed-ce';
 import { McpAuthorizePage } from './mcp-authorize';
 import { RedirectPage } from './redirect';
-import { EmbedCePage } from './embed-ce';
 
 const ChatPage = React.lazy(() =>
   import('./chat').then((m) => ({ default: m.ChatPage })),

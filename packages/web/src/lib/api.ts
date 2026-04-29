@@ -46,7 +46,8 @@ function globalErrorHandler(error: AxiosError) {
     ) {
       authenticationSession.logOut();
       console.log(errorCode);
-      window.location.href = '/sign-in';
+      // CUSTOMIZATION: use BASE_URL so the redirect lands on the correct subpath
+      window.location.href = `${import.meta.env.BASE_URL}sign-in`;
     }
   }
 }
