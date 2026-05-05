@@ -55,7 +55,7 @@ export default defineConfig(({ command, mode }) => {
           rewrite: (path: string) => '/' + path.slice(base.length),
           // << CUSTOMIZATION END
         },
-        '^/mcp$': {
+        '^/mcp(/|$)': {
           target: 'http://127.0.0.1:3000',
           secure: false,
           changeOrigin: true,
