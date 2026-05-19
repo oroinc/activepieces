@@ -1,0 +1,165 @@
+ARG ORG_BASE_IMAGE=oraclelinux
+ARG ORG_IMAGE_TAG=9-slim
+
+
+FROM ${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG} AS base
+
+ARG ORG_BASE_IMAGE
+ARG ORG_IMAGE_TAG
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+# Upgrade base, enable EPEL, install all system deps from official repos
+RUN --mount=type=cache,target=/var/cache/dnf \
+    <<EOR
+    set -ex
+    microdnf upgrade -y
+    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
+        oracle-epel-release-el9
+    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
+        curl \
+        ca-certificates \
+        openssh-clients \
+        python3 \
+        gcc \
+        gcc-c++ \
+        make \
+        git \
+        poppler-utils \
+        poppler-data \
+        procps-ng \
+        glibc-langpack-en \
+        glibc-locale-source \
+        unzip \
+        iptables \
+        libcap-devel \
+        xz
+    localedef -i en_US -f UTF-8 en_US.UTF-8
+    groupadd -g 2001 -r activepieces
+    useradd -u 2002 -g 2001 -r -s /sbin/nologin --home-dir /usr/src/app activepieces
+EOR
+
+# Install Node.js from official nodejs.org binary tarball (matches production version)
+ARG NODE_VERSION=24.14.0
+RUN <<EOR
+    set -ex
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        NODE_ARCH="x64"
+    elif [ "$ARCH" = "aarch64" ]; then
+        NODE_ARCH="arm64"
+    fi
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+        -o /tmp/node.tar.xz
+    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner
+    rm -f /tmp/node.tar.xz
+    node --version
+    npm --version
+EOR
+
+# Install bun runtime
+RUN <<EOR
+    set -ex
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        curl -fSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.1/bun-linux-x64-baseline.zip -o bun.zip
+    elif [ "$ARCH" = "aarch64" ]; then
+        curl -fSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.1/bun-linux-aarch64.zip -o bun.zip
+    fi
+    unzip bun.zip
+    mv bun-*/bun /usr/local/bin/bun
+    chmod +x /usr/local/bin/bun
+    rm -rf bun.zip bun-*
+    bun --version
+EOR
+
+# Install global npm tools and isolated-vm (needed for sandbox execution)
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    <<EOR
+    set -ex
+    npm install -g --no-fund --no-audit \
+        node-gyp \
+        npm@11.11.0 \
+        pm2@6.0.10 \
+        typescript@4.9.4 \
+        esbuild@0.25.0
+    cd /usr/src && bun install isolated-vm@6.0.2
+EOR
+
+
+FROM base AS builder
+
+WORKDIR /usr/src/app
+
+COPY --link .npmrc package.json bun.lock bunfig.toml ./
+COPY --link packages/ ./packages/
+
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
+
+COPY --link . .
+
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    <<EOR
+    set -ex
+    npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker --filter=@activepieces/piece-orocommerce
+    node -e "\
+      const {getMigrations} = require('./packages/server/api/dist/src/app/database/postgres-connection');\
+      const names = getMigrations().map(M => new M().name);\
+      process.stdout.write(JSON.stringify(names));\
+    " > packages/server/api/dist/src/migration-manifest.json
+    rm -rf packages/pieces/core packages/pieces/custom
+    find packages/pieces/community -mindepth 1 -maxdepth 1 -type d \
+        ! -name slack \
+        ! -name square \
+        ! -name facebook-leads \
+        ! -name intercom \
+        ! -name orocommerce \
+        -exec rm -rf {} +
+    bun install --verbose
+EOR
+
+### STAGE 2: Run ###
+FROM base AS run
+ARG ORG_BASE_IMAGE
+ARG ORG_IMAGE_TAG
+WORKDIR /usr/src/app
+
+ENV AP_PORT=4200 \
+    PM2_HOME=/tmp/.pm2
+
+LABEL org.opencontainers.image.title="Activepieces" \
+      org.opencontainers.image.description="Open-source AI-first workflow automation platform" \
+      org.opencontainers.image.authors="Activepieces Inc." \
+      org.opencontainers.image.vendor="Activepieces Inc." \
+      org.opencontainers.image.url="https://github.com/activepieces/activepieces" \
+      org.opencontainers.image.documentation="https://www.activepieces.com/docs" \
+      org.opencontainers.image.base.name="${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG}" \
+      service="activepieces"
+
+COPY --link --from=builder /usr/src/app/packages/server/api/src/assets/default.cf /usr/local/etc/isolate
+COPY --link docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN <<EOR
+    set -ex
+    mkdir -p dist/packages/engine cache
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+EOR
+COPY --link --from=builder /usr/src/app/package.json .
+COPY --link --from=builder /usr/src/app/.npmrc .
+COPY --link --from=builder /usr/src/app/bun.lock .
+COPY --link --from=builder /usr/src/app/bunfig.toml .
+COPY --link --from=builder /usr/src/app/LICENSE .
+COPY --link --from=builder /usr/src/app/packages ./packages
+COPY --link --from=builder /usr/src/app/dist/packages/engine/ ./dist/packages/engine/
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --production
+COPY --link --from=builder /usr/src/app/dist/packages/web ./dist/packages/web/
+
+RUN chown -R activepieces:activepieces cache dist/packages/engine
+
+USER activepieces
+EXPOSE 4200
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
