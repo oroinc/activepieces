@@ -5,6 +5,8 @@ import Backend from 'i18next-http-backend';
 import ICU from 'i18next-icu';
 import { initReactI18next } from 'react-i18next';
 
+import { basePath } from '@/lib/base-path';
+
 i18n
   .use(ICU)
   .use(Backend)
@@ -21,7 +23,7 @@ i18n
     nsSeparator: false,
     returnEmptyString: false,
     backend: {
-      loadPath: `${import.meta.env.BASE_URL}locales/{{lng}}/{{ns}}.json`,
+      loadPath: `${basePath}locales/{{lng}}/{{ns}}.json`,
     },
   });
 export default i18n;

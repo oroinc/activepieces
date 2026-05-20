@@ -134,6 +134,7 @@ const EmbedCePage = React.memo(() => {
         disableNavigationInBuilder:
           event.data.data.disableNavigationInBuilder !== false,
         hideFolders: event.data.data.hideFolders ?? false,
+        hideTables: event.data.data.hideTables ?? false,
         sdkVersion: event.data.data.sdkVersion,
         fontUrl: event.data.data.fontUrl,
         fontFamily: event.data.data.fontFamily,
@@ -150,12 +151,13 @@ const EmbedCePage = React.memo(() => {
         hideDuplicateFlow: event.data.data.hideDuplicateFlow ?? false,
         hideFlowsPageNavbar: event.data.data.hideFlowsPageNavbar ?? false,
         hidePageHeader: event.data.data.hidePageHeader ?? false,
-        hideTables: event.data.data.hideTables ?? false,
       });
     });
 
     memoryRouter.navigate(initialRoute);
-    handleVendorNavigation({ projectId });
+    if (projectId) {
+      handleVendorNavigation({ projectId: projectId });
+    }
     handleClientNavigation();
     notifyVendorPostAuthentication();
   };

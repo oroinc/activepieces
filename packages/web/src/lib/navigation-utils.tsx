@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
+import { basePath } from '@/lib/base-path';
 
 export const useNewWindow = () => {
   const { embedState } = useEmbedding();
@@ -13,7 +14,7 @@ export const useNewWindow = () => {
       });
   } else {
     return (route: string, searchParams?: string) => {
-      const url = `${import.meta.env.BASE_URL}${route.replace(/^\//, '')}${
+      const url = `${basePath}${route.replace(/^\//, '')}${
         searchParams ? '?' + searchParams : ''
       }`;
       window.open(url, '_blank', 'noopener noreferrer');

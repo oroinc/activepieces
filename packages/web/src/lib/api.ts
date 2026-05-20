@@ -9,12 +9,13 @@ import axios, {
 import qs from 'qs';
 
 import { authenticationSession } from '@/lib/authentication-session';
+import { basePath } from '@/lib/base-path';
 export const isRunningCloudInDevMode = import.meta.env.MODE === 'cloud';
 
 export const API_BASE_URL = isRunningCloudInDevMode
   ? 'https://cloud.activepieces.com'
   : window.location.origin;
-export const API_URL = `${API_BASE_URL}${import.meta.env.BASE_URL}api`;
+export const API_URL = `${API_BASE_URL}${basePath}api`;
 
 const disallowedRoutes = [
   '/v1/managed-authn/external-token',
@@ -47,7 +48,7 @@ function globalErrorHandler(error: AxiosError) {
       authenticationSession.logOut();
       console.log(errorCode);
       // CUSTOMIZATION: use BASE_URL so the redirect lands on the correct subpath
-      window.location.href = `${import.meta.env.BASE_URL}sign-in`;
+      window.location.href = `${basePath}sign-in`;
     }
   }
 }

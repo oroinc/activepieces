@@ -12,6 +12,7 @@ import { projectRoutes } from '@/app/routes/project-routes';
 import { publicRoutes } from '@/app/routes/public-routes';
 import { RouteLoadingBar } from '@/components/custom/route-loading-bar';
 import { useEmbedding } from '@/components/providers/embed-provider';
+import { basePath } from '@/lib/base-path';
 
 import { AllowOnlyLoggedInUserOnlyGuard } from '../components/allow-logged-in-user-only-guard';
 import { ProjectDashboardLayout } from '../components/project-layout';
@@ -70,7 +71,7 @@ const routes = [
 
 export const memoryRouter = createMemoryRouter(routes);
 const browserRouter = createBrowserRouter(routes, {
-  basename: import.meta.env.BASE_URL,
+  basename: basePath,
 });
 
 const ApRouter = () => {

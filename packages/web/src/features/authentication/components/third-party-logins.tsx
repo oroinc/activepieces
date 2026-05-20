@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { internalErrorToast } from '@/components/ui/sonner';
 import { oauth2Utils } from '@/features/connections/utils/oauth2-utils';
 import { flagsHooks } from '@/hooks/flags-hooks';
+import { basePath } from '@/lib/base-path';
 
 const ThirdPartyIcon = ({ icon }: { icon: string }) => {
   return <img src={icon} alt="icon" width={24} height={24} className="mr-2" />;
@@ -46,9 +47,7 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
   };
 
   const signInWithSaml = () =>
-    (window.location.href = `${
-      import.meta.env.BASE_URL
-    }api/v1/authn/saml/login`);
+    (window.location.href = `${basePath}api/v1/authn/saml/login`);
 
   return (
     <div className="flex flex-col gap-4">

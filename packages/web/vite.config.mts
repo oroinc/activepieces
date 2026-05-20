@@ -18,11 +18,10 @@ export default defineConfig(({ command, mode }) => {
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';
 
   // CUSTOMIZATION START: embedding >>
-  // TODO: we will need to support real .env files loading?
   donenv.config({ path: path.resolve(__dirname, '../../.env.dev') });
-  let base = '/';
-  const allowedHosts = [];
-  if (process.env.AP_FRONTEND_URL) {
+  let base: string = './';
+  const allowedHosts: string[] = [];
+  if (isDev && process.env.AP_FRONTEND_URL) {
     const AP_FRONTEND_URL = new URL(process.env.AP_FRONTEND_URL);
     const AP_ASSETS_PREFIX = AP_FRONTEND_URL.pathname.replace(/^\/|\/$/, '');
     allowedHosts.push(AP_FRONTEND_URL.host);
