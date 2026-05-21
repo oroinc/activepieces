@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import { jwtDecode } from 'jwt-decode';
 
 import { authenticationApi } from '@/api/authentication-api';
+import { queryClient } from '@/app/query-client';
 import { basePath } from '@/lib/base-path';
 
 import { ApStorage } from './ap-browser-storage';
@@ -25,6 +26,7 @@ export const authenticationSession = {
     if (!isNil(response.projectId)) {
       ApStorage.getInstance().setItem(projectIdKey, response.projectId);
     }
+    queryClient.invalidateQueries({ queryKey: ['flags'] });
     window.dispatchEvent(new Event('storage'));
   },
   isJwtExpired(token: string): boolean {
