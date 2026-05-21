@@ -244,7 +244,7 @@ When rebasing onto a new Activepieces version:
 
 ```nginx
 location /admin/activepieces-instance/api/ {
-    proxy_pass http://activepieces-app:3000/api/;
+    proxy_pass http://activepieces-app:4200?request_uri;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade";
@@ -255,7 +255,7 @@ location /admin/activepieces-instance/api/ {
 }
 
 location /admin/activepieces-instance/ {
-    proxy_pass http://activepieces-app:3000/;
+    proxy_pass http://activepieces-app:4200?request_uri;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade";
