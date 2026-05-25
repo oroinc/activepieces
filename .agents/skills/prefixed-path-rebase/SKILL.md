@@ -240,7 +240,7 @@ When rebasing onto a new Activepieces version:
 | `AP_ASSETS_PREFIX` | App container                | `admin/activepieces-instance`                    |
 | `AP_FRONTEND_URL`  | Worker container, `.env.dev` | `https://myhost.com/admin/activepieces-instance` |
 
-## Nginx Config
+## Nginx Config for local development
 
 ```nginx
 location /admin/activepieces-instance/api/ {
@@ -256,6 +256,19 @@ location /admin/activepieces-instance/api/ {
 
 location /admin/activepieces-instance/ {
     proxy_pass http://activepieces-app:4200?request_uri;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+## Nginx Config for docker
+
+```nginx
+location /admin/activepieces-instance/ {
+    proxy_pass http://127.0.0.1:4200/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade";
