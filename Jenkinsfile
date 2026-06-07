@@ -8,6 +8,7 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
         ansiColor('xterm')
         timestamps()
+        disableConcurrentBuilds(abortPrevious: true)
     }
 
     environment {
