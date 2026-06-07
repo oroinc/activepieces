@@ -19,7 +19,12 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    env.ORO_AP_IMAGE_TAG = env.BUILD_TAG.replaceAll('/', '-').replaceAll('%2F', '-')
+                    env.ORO_AP_IMAGE_TAG = env.BUILD_TAG
+                        .toLowerCase()
+                        .replaceAll('%2F', '-')
+                        .replaceAll('[^a-z0-9._-]', '-')
+                        .replaceAll('-+', '-')
+                        .take(128)
                 }
                 withCredentials([usernamePassword(credentialsId: 'ocir.eu-frankfurt-1.oci.oraclecloud.com', usernameVariable: 'ORO_REGISTRY_CREDS_USR', passwordVariable: 'ORO_REGISTRY_CREDS_PSW')]) {
                     sh label: 'docker login ocir.eu-frankfurt-1.oci.oraclecloud.com', script: 'echo $ORO_REGISTRY_CREDS_PSW | docker login -u $ORO_REGISTRY_CREDS_USR --password-stdin ocir.eu-frankfurt-1.oci.oraclecloud.com'
