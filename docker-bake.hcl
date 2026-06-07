@@ -25,7 +25,7 @@ group "default" {
 target "runtime" {
   target     = "runtime"
   dockerfile = "Dockerfile.oro"
-  tags       = ["${ORO_AP_IMAGE}:${ORO_AP_IMAGE_TAG}"]
+  tags       = concat(["${ORO_AP_IMAGE}:${ORO_AP_IMAGE_TAG}"], GIT_BRANCH == "main" ? ["${ORO_AP_IMAGE}:latest"] : [])
   labels     = labelList()
   // platforms = ["linux/amd64", "linux/arm64"]
 }
