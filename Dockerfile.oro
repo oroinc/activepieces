@@ -1,110 +1,93 @@
 ARG ORG_BASE_IMAGE=oraclelinux
 ARG ORG_IMAGE_TAG=9-slim
+ARG BUN_VERSION=1.3.3
 
-
+FROM oven/bun:${BUN_VERSION} AS bun
+### STAGE 1: Base ###
 FROM ${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG} AS base
 
-ARG ORG_BASE_IMAGE
-ARG ORG_IMAGE_TAG
+ARG NODE_VERSION=24
 
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
 
-# Upgrade base, enable EPEL, install all system deps from official repos
-RUN --mount=type=cache,target=/var/cache/dnf \
-    <<EOR
+# Upgrade base, install all system deps from official repos
+RUN --mount=type=cache,target=/var/cache/dnf <<EOR
     set -ex
     microdnf upgrade -y
-    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
-        oracle-epel-release-el9
+    microdnf module enable nodejs:${NODE_VERSION}
     microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
         curl \
         ca-certificates \
         openssh-clients \
-        python3 \
-        gcc \
-        gcc-c++ \
-        make \
-        git \
-        poppler-utils \
-        poppler-data \
+        nodejs \
+        npm \
+        git-core \
         procps-ng \
         glibc-langpack-en \
         glibc-locale-source \
-        unzip \
         iptables \
-        libcap-devel \
-        xz
+        libcap
+    
     localedef -i en_US -f UTF-8 en_US.UTF-8
     groupadd -g 2001 -r activepieces
-    useradd -u 2002 -g 2001 -r -s /sbin/nologin --home-dir /usr/src/app activepieces
-EOR
-
-# Install Node.js from official nodejs.org binary tarball (matches production version)
-ARG NODE_VERSION=24.14.0
-RUN <<EOR
-    set -ex
-    ARCH=$(uname -m)
-    if [ "$ARCH" = "x86_64" ]; then
-        NODE_ARCH="x64"
-    elif [ "$ARCH" = "aarch64" ]; then
-        NODE_ARCH="arm64"
-    fi
-    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
-        -o /tmp/node.tar.xz
-    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner
-    rm -f /tmp/node.tar.xz
+    useradd -u 2002 -g 2001 -r -m -s /sbin/nologin --home-dir /var/lib/activepieces activepieces
     node --version
     npm --version
 EOR
 
 # Install bun runtime
-ARG BUN_VERSION=1.3.3
-RUN <<EOR
-    set -ex
-    ARCH=$(uname -m)
-    if [ "$ARCH" = "x86_64" ]; then
-        curl -fSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-x64-baseline.zip" -o bun.zip
-    elif [ "$ARCH" = "aarch64" ]; then
-        curl -fSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-aarch64.zip" -o bun.zip
-    fi
-    unzip bun.zip
-    mv bun-*/bun /usr/local/bin/bun
-    chmod +x /usr/local/bin/bun
-    rm -rf bun.zip bun-*
-    bun --version
-EOR
+COPY --link --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
-# Install global npm tools and isolated-vm (needed for sandbox execution)
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/root/.bun/install/cache \
-    <<EOR
+# Install global npm tools
+RUN --mount=type=cache,target=/root/.npm <<EOR
     set -ex
     npm install -g --no-fund --no-audit \
-        node-gyp \
-        npm@11.11.0 \
         pm2@6.0.10 \
         typescript@4.9.4 \
         esbuild@0.25.0
-    cd /usr/src && bun install isolated-vm@6.0.2
 EOR
 
+### STAGE 2: Native Build Base ###
+FROM base AS native-build-base
 
-FROM base AS builder
+RUN --mount=type=cache,target=/var/cache/dnf <<EOR
+    set -ex
+    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
+        gcc \
+        gcc-c++ \
+        make \
+        python3 \
+        libcap-devel
+EOR
 
-WORKDIR /usr/src/app
+RUN --mount=type=cache,target=/root/.npm <<EOR
+    set -ex
+    npm install -g --no-fund --no-audit node-gyp
+EOR
 
-COPY --link .npmrc package.json bun.lock bunfig.toml ./
+### STAGE 3: Dependencies ###
+FROM native-build-base AS deps
+
+WORKDIR /var/lib/activepieces
+
+COPY --link package.json bun.lock bunfig.toml ./
 COPY --link packages/ ./packages/
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
+    set -ex
+    # TODO USE frozen-lockfile once we have a lockfile that works for both dev and prod deps. For now, we need to allow bun to update the lockfile to resolve the native dependency versions before we can prune the workspace in the builder stage.
+    # bun install --frozen-lockfile --no-progress
+    bun install --no-progress
+EOR
+
+### STAGE 4: Builder ###
+FROM deps AS builder
 
 COPY --link . .
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    <<EOR
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
     set -ex
     npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker --filter=@activepieces/piece-orocommerce
     node -e "\
@@ -120,14 +103,30 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
         ! -name intercom \
         ! -name orocommerce \
         -exec rm -rf {} +
-    bun install --verbose
+    # Pruning changes the workspace graph, so we need a new lockfile for the
+    # remaining packages before the frozen production install runs in prod-deps.
+    bun install --lockfile-only --no-progress
 EOR
 
-### STAGE 2: Run ###
-FROM base AS run
+### STAGE 5: Production Dependencies ###
+FROM native-build-base AS prod-deps
+
+WORKDIR /var/lib/activepieces
+
+COPY --link package.json bunfig.toml ./
+COPY --link --from=builder /var/lib/activepieces/bun.lock ./
+COPY --link --from=builder /var/lib/activepieces/packages ./packages
+
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
+    set -ex
+    bun install --production --frozen-lockfile --no-progress
+EOR
+
+### STAGE 6: Runtime ###
+FROM base AS runtime
 ARG ORG_BASE_IMAGE
 ARG ORG_IMAGE_TAG
-WORKDIR /usr/src/app
+WORKDIR /var/lib/activepieces
 
 ENV AP_PORT=4200 \
     PM2_HOME=/tmp/.pm2
@@ -141,35 +140,23 @@ LABEL org.opencontainers.image.title="Activepieces" \
       org.opencontainers.image.base.name="${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG}" \
       service="activepieces"
 
-COPY --link --from=builder /usr/src/app/packages/server/api/src/assets/default.cf /usr/local/etc/isolate
-COPY --link docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --link --from=builder /var/lib/activepieces/packages/server/api/src/assets/default.cf /usr/local/etc/isolate
+COPY --link --chmod=755 healthcheck /usr/local/bin/healthcheck
+COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --link --from=prod-deps /var/lib/activepieces/package.json .
+COPY --link --from=prod-deps /var/lib/activepieces/bun.lock .
+COPY --link --from=prod-deps /var/lib/activepieces/bunfig.toml .
+COPY --link --from=builder /var/lib/activepieces/LICENSE .
+COPY --link --from=prod-deps /var/lib/activepieces/node_modules ./node_modules
+COPY --link --from=builder /var/lib/activepieces/packages ./packages
+COPY --link --from=builder /var/lib/activepieces/dist/packages/engine ./dist/packages/engine
+COPY --link --from=builder /var/lib/activepieces/dist/packages/web ./dist/packages/web
+
 RUN <<EOR
     set -ex
     mkdir -p dist/packages/engine cache
-    chmod +x /usr/local/bin/docker-entrypoint.sh
+    chown -R activepieces:activepieces cache dist/packages/engine
 EOR
-COPY --link --from=builder /usr/src/app/package.json .
-COPY --link --from=builder /usr/src/app/.npmrc .
-COPY --link --from=builder /usr/src/app/bun.lock .
-COPY --link --from=builder /usr/src/app/bunfig.toml .
-COPY --link --from=builder /usr/src/app/LICENSE .
-COPY --link --from=builder /usr/src/app/packages ./packages
-COPY --link --from=builder /usr/src/app/dist/packages/engine/ ./dist/packages/engine/
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --production
-COPY --link --from=builder /usr/src/app/dist/packages/web ./dist/packages/web/
-
-# Remove build-only packages that were required for native module compilation
-# and replace libcap-devel (headers) with libcap (shared library only)
-RUN <<EOR
-    set -ex
-    npm uninstall -g node-gyp
-    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install libcap
-    microdnf remove -y gcc gcc-c++ make libcap-devel unzip xz
-    microdnf clean all
-EOR
-
-RUN chown -R activepieces:activepieces cache dist/packages/engine
 
 USER activepieces
 EXPOSE 4200
