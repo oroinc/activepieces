@@ -77,7 +77,9 @@ COPY --link packages/ ./packages/
 
 RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
     set -ex
-    bun install --frozen-lockfile --no-progress
+    # TODO USE frozen-lockfile once we have a lockfile that works for both dev and prod deps. For now, we need to allow bun to update the lockfile to resolve the native dependency versions before we can prune the workspace in the builder stage.
+    # bun install --frozen-lockfile --no-progress
+    bun install --no-progress
 EOR
 
 ### STAGE 4: Builder ###
