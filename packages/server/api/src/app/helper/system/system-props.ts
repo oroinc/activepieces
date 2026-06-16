@@ -1,10 +1,7 @@
-import path from 'path'
 import { environmentMigrations } from '@activepieces/server-utils'
 import { assertNotNullOrUndefined } from '@activepieces/shared'
 
 export type SystemProp = AppSystemProp
-
-let cachedVersion: string | undefined
 
 export enum AppSystemProp {
     ALLOWED_EMBED_ORIGINS = 'ALLOWED_EMBED_ORIGINS',
@@ -16,6 +13,8 @@ export enum AppSystemProp {
     API_RATE_LIMIT_AUTHN_WINDOW = 'API_RATE_LIMIT_AUTHN_WINDOW',
     APP_WEBHOOK_SECRETS = 'APP_WEBHOOK_SECRETS',
     APPSUMO_TOKEN = 'APPSUMO_TOKEN',
+    AXIOM_TOKEN = 'AXIOM_TOKEN',
+    AXIOM_DATASET = 'AXIOM_DATASET',
     BETTERSTACK_HOST = 'BETTERSTACK_HOST',
     BETTERSTACK_TOKEN = 'BETTERSTACK_TOKEN',
     CLIENT_REAL_IP_HEADER = 'CLIENT_REAL_IP_HEADER',
@@ -126,7 +125,8 @@ export enum AppSystemProp {
     CONTAINER_TYPE = 'CONTAINER_TYPE',
     FRONTEND_URL = 'FRONTEND_URL',
     PORT = 'PORT',
-    CONSOLE_API_SECRET_KEY = 'CONSOLE_API_SECRET_KEY',
+    LOG_SAMPLE_RATE_INFO = 'LOG_SAMPLE_RATE_INFO',
+    LOG_KEEP_SLOW_MS = 'LOG_KEEP_SLOW_MS',
 }
 
 export enum ContainerType {
@@ -159,33 +159,3 @@ export const environmentVariables = {
     },
 }
 
-export const apVersionUtil = {
-    async getCurrentRelease(): Promise<string> {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const packageJson = require(path.resolve(process.cwd(), 'package.json'))
-        return packageJson.version
-    },
-    async getLatestRelease(): Promise<string> {
-        try {
-            if (cachedVersion) {
-                return cachedVersion
-            }
-            const response = await fetch(
-                'https://raw.githubusercontent.com/activepieces/activepieces/main/package.json',
-                {
-                    signal: AbortSignal.timeout(5000),
-                },
-            )
-            const data: PackageJson = await response.json()
-            cachedVersion = data.version
-            return data.version
-        }
-        catch (ex) {
-            return '0.0.0'
-        }
-    },
-}
-
-type PackageJson = {
-    version: string
-}
