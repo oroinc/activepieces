@@ -120,7 +120,11 @@ const EmbedCePage = React.memo(() => {
     i18n.changeLanguage(event.data.data.locale ?? 'en');
 
     const configuredRoute = event.data.data.initialRoute ?? '/';
-    const defaultRoute = determineDefaultRoute(checkAccess);
+    // Embeds keep their host-configured landing; chat shouldn't override it.
+    const defaultRoute = determineDefaultRoute({
+      checkAccess,
+      chatEnabled: false,
+    });
     const initialRoute =
       configuredRoute === '/' ? defaultRoute : configuredRoute;
 
