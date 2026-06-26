@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { internalErrorToast } from '@/components/ui/sonner';
 import { oauth2Utils } from '@/features/connections/utils/oauth2-utils';
 import { flagsHooks } from '@/hooks/flags-hooks';
+import { basePath } from '@/lib/base-path';
 
 const ThirdPartyIcon = ({ icon }: { icon: string }) => {
   return <img src={icon} alt="icon" width={24} height={24} className="mr-2" />;
@@ -110,7 +111,7 @@ const ThirdPartyLogin = React.memo(
                 name: TelemetryEventName.FEDERATED_LOGIN_STARTED,
                 payload: { provider: 'saml' },
               });
-              window.location.href = '/api/v1/authn/saml/login';
+              window.location.href = `${basePath}api/v1/authn/saml/login`;
             }}
           >
             <ThirdPartyIcon icon={SamlIcon} />

@@ -9,6 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 
 import { authenticationApi } from '@/api/authentication-api';
 import { queryClient } from '@/app/query-client';
+import { basePath } from '@/lib/base-path';
 
 import { ApStorage } from './ap-browser-storage';
 const tokenKey = 'token';
@@ -107,7 +108,7 @@ export const authenticationSession = {
     if (!isNil(result.projectId)) {
       ApStorage.getInstance().setItem(projectIdKey, result.projectId);
     }
-    window.location.href = '/';
+    window.location.href = basePath;
   },
   switchToProject(projectId: string) {
     if (authenticationSession.getProjectId() === projectId) {
@@ -129,7 +130,7 @@ export const authenticationSession = {
   },
   logOut() {
     this.clearSession();
-    window.location.href = '/sign-in';
+    window.location.href = `${basePath}sign-in`;
   },
 };
 

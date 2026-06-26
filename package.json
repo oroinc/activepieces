@@ -50,6 +50,7 @@
   },
   "private": true,
   "dependencies": {
+    "@activepieces/piece-orocommerce": "0.2.0",
     "@activepieces/import-fresh-webpack": "3.3.0",
     "@ai-sdk/amazon-bedrock": "3.0.97",
     "@ai-sdk/anthropic": "^3.0.0",

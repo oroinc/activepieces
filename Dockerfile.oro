@@ -1,0 +1,163 @@
+ARG ORG_BASE_IMAGE=oraclelinux
+ARG ORG_IMAGE_TAG=9-slim
+ARG BUN_VERSION=1.3.3
+
+FROM oven/bun:${BUN_VERSION} AS bun
+### STAGE 1: Base ###
+FROM ${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG} AS base
+
+ARG NODE_VERSION=24
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+# Upgrade base, install all system deps from official repos
+RUN --mount=type=cache,target=/var/cache/dnf <<EOR
+    set -ex
+    microdnf upgrade -y
+    microdnf module enable nodejs:${NODE_VERSION}
+    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
+        curl \
+        ca-certificates \
+        openssh-clients \
+        nodejs \
+        npm \
+        git-core \
+        procps-ng \
+        glibc-langpack-en \
+        glibc-locale-source \
+        iptables \
+        libcap
+    
+    localedef -i en_US -f UTF-8 en_US.UTF-8
+    groupadd -g 2001 -r activepieces
+    useradd -u 2002 -g 2001 -r -m -s /sbin/nologin --home-dir /var/lib/activepieces activepieces
+    node --version
+    npm --version
+EOR
+
+# Install bun runtime
+COPY --link --from=bun /usr/local/bin/bun /usr/local/bin/bun
+
+# Install global npm tools
+RUN --mount=type=cache,target=/root/.npm <<EOR
+    set -ex
+    npm install -g --no-fund --no-audit \
+        pm2@6.0.10 \
+        typescript@4.9.4 \
+        esbuild@0.25.0
+EOR
+
+### STAGE 2: Native Build Base ###
+FROM base AS native-build-base
+
+RUN --mount=type=cache,target=/var/cache/dnf <<EOR
+    set -ex
+    microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
+        gcc \
+        gcc-c++ \
+        make \
+        python3 \
+        libcap-devel
+EOR
+
+RUN --mount=type=cache,target=/root/.npm <<EOR
+    set -ex
+    npm install -g --no-fund --no-audit node-gyp
+EOR
+
+### STAGE 3: Dependencies ###
+FROM native-build-base AS deps
+
+WORKDIR /var/lib/activepieces
+
+COPY --link package.json bun.lock bunfig.toml ./
+COPY --link packages/ ./packages/
+
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
+    set -ex
+    # TODO USE frozen-lockfile once we have a lockfile that works for both dev and prod deps. For now, we need to allow bun to update the lockfile to resolve the native dependency versions before we can prune the workspace in the builder stage.
+    # bun install --frozen-lockfile --no-progress
+    bun install --no-progress
+EOR
+
+### STAGE 4: Builder ###
+FROM deps AS builder
+
+COPY --link . .
+
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
+    set -ex
+    npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker --filter=@activepieces/piece-orocommerce
+    node -e "\
+      const {getMigrations} = require('./packages/server/api/dist/src/app/database/postgres-connection');\
+      const names = getMigrations().map(M => new M().name);\
+      process.stdout.write(JSON.stringify(names));\
+    " > packages/server/api/dist/src/migration-manifest.json
+    rm -rf packages/pieces/core packages/pieces/custom
+    find packages/pieces/community -mindepth 1 -maxdepth 1 -type d \
+        ! -name slack \
+        ! -name square \
+        ! -name facebook-leads \
+        ! -name intercom \
+        ! -name orocommerce \
+        -exec rm -rf {} +
+    # Pruning changes the workspace graph, so we need a new lockfile for the
+    # remaining packages before the frozen production install runs in prod-deps.
+    bun install --lockfile-only --no-progress
+EOR
+
+### STAGE 5: Production Dependencies ###
+FROM native-build-base AS prod-deps
+
+WORKDIR /var/lib/activepieces
+
+COPY --link package.json bunfig.toml ./
+COPY --link --from=builder /var/lib/activepieces/bun.lock ./
+COPY --link --from=builder /var/lib/activepieces/packages ./packages
+
+RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
+    set -ex
+    bun install --production --frozen-lockfile --no-progress
+EOR
+
+### STAGE 6: Runtime ###
+FROM base AS runtime
+ARG ORG_BASE_IMAGE
+ARG ORG_IMAGE_TAG
+WORKDIR /var/lib/activepieces
+
+ENV AP_PORT=4200 \
+    PM2_HOME=/tmp/.pm2
+
+LABEL org.opencontainers.image.title="Activepieces" \
+      org.opencontainers.image.description="Open-source AI-first workflow automation platform" \
+      org.opencontainers.image.authors="Activepieces Inc." \
+      org.opencontainers.image.vendor="Activepieces Inc." \
+      org.opencontainers.image.url="https://github.com/activepieces/activepieces" \
+      org.opencontainers.image.documentation="https://www.activepieces.com/docs" \
+      org.opencontainers.image.base.name="${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG}" \
+      service="activepieces"
+
+COPY --link --from=builder /var/lib/activepieces/packages/server/api/src/assets/default.cf /usr/local/etc/isolate
+COPY --link --chmod=755 healthcheck /usr/local/bin/healthcheck
+COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --link --from=prod-deps /var/lib/activepieces/package.json .
+COPY --link --from=prod-deps /var/lib/activepieces/bun.lock .
+COPY --link --from=prod-deps /var/lib/activepieces/bunfig.toml .
+COPY --link --from=builder /var/lib/activepieces/LICENSE .
+COPY --link --from=prod-deps /var/lib/activepieces/node_modules ./node_modules
+COPY --link --from=builder /var/lib/activepieces/packages ./packages
+COPY --link --from=builder /var/lib/activepieces/dist/packages/engine ./dist/packages/engine
+COPY --link --from=builder /var/lib/activepieces/dist/packages/web ./dist/packages/web
+
+RUN <<EOR
+    set -ex
+    mkdir -p dist/packages/engine cache
+    chown -R activepieces:activepieces cache dist/packages/engine
+EOR
+
+USER activepieces
+EXPOSE 4200
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

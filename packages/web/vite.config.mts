@@ -1,5 +1,8 @@
 /// <reference types='vitest' />
 import path from 'path';
+// CUSTOMIZATION START: embedding >>
+import donenv from 'dotenv';
+// << CUSTOMIZATION END: embedding
 
 import tsconfigPaths from 'vite-tsconfig-paths';
 import react from '@vitejs/plugin-react';
@@ -14,13 +17,30 @@ export default defineConfig(({ command, mode }) => {
   const AP_TITLE = 'Activepieces';
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';
 
+  // CUSTOMIZATION START: embedding >>
+  donenv.config({ path: path.resolve(__dirname, '../../.env.dev') });
+  let base: string = './';
+  const allowedHosts: string[] = [];
+  if (isDev && process.env.AP_FRONTEND_URL) {
+    const AP_FRONTEND_URL = new URL(process.env.AP_FRONTEND_URL);
+    const AP_ASSETS_PREFIX = AP_FRONTEND_URL.pathname.replace(/^\/|\/$/, '');
+    allowedHosts.push(AP_FRONTEND_URL.host);
+    base = `/${AP_ASSETS_PREFIX}/`;
+  }
+  // << CUSTOMIZATION END: embedding
+
   return {
+    base,
     root: __dirname,
     cacheDir: '../../node_modules/.vite/packages/web',
     server: {
-      // allowedHosts: ['wozcsvaint.loclx.io'],
+      // CUSTOMIZATION START: embedding >>
+      allowedHosts: allowedHosts,
+      // << CUSTOMIZATION END: embedding
       proxy: {
-        '/api': {
+        // CUSTOMIZATION START: embedding >>
+        [`${base}api`]: {
+          // << CUSTOMIZATION END: embedding
           target: 'http://127.0.0.1:3000',
           secure: false,
           changeOrigin: true,
@@ -28,6 +48,11 @@ export default defineConfig(({ command, mode }) => {
             Host: '127.0.0.1:4200',
           },
           ws: true,
+          // CUSTOMIZATION: strip the frontend base prefix before forwarding to
+          // the backend (which only knows /api/..., not /<base>/api/...).
+          // Works for base='/' (identity) and base='/prefix/' (strips prefix).
+          rewrite: (path: string) => '/' + path.slice(base.length),
+          // << CUSTOMIZATION END
         },
         '/ingest': {
           target: 'http://127.0.0.1:3000',
@@ -138,15 +163,26 @@ export default defineConfig(({ command, mode }) => {
       customHtmlPlugin({
         title: AP_TITLE,
         icon: AP_FAVICON,
+        // CUSTOMIZATION START: embedding >>
+        base,
+        // << CUSTOMIZATION END: embedding
       }),
       ...(isDev
         ? [
             checker({
+              // CUSTOMIZATION START: embedding >>
+              // Use tsconfig.app.json directly (buildMode: false) to avoid
+              // tsconfig.spec.json (module: commonjs, no @/* paths) being
+              // checked during dev serve. The upstream test suite
+              // dynamically imports source files that use import.meta.env
+              // and @/ aliases, both of which are incompatible with the
+              // spec tsconfig's commonjs module setting.
               typescript: {
-                buildMode: true,
-                tsconfigPath: './tsconfig.json',
+                buildMode: false,
+                tsconfigPath: './tsconfig.app.json',
                 root: __dirname,
               },
+              // << CUSTOMIZATION END: embedding
             }),
           ]
         : []),
