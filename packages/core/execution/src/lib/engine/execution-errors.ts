@@ -91,9 +91,27 @@ export class FetchError extends ExecutionError {
     }
 }
 
+export class EngineFileNotFoundError extends ExecutionError {
+    constructor(fileId: string, cause?: unknown) {
+        super('EngineFileNotFound', formatMessage(`File (${fileId}) no longer exists`), ExecutionErrorType.USER, cause)
+    }
+}
+
+export class VariableNotFoundError extends ExecutionError {
+    constructor(name: string, cause?: unknown) {
+        super('VariableNotFound', formatMessage(`variable (${name}) not found`), ExecutionErrorType.USER, cause)
+    }
+}
+
 export class InvalidCronExpressionError extends ExecutionError {
     constructor(cronExpression: string, cause?: unknown) {
         super('InvalidCronExpressionError', formatMessage(`Invalid cron expression: ${cronExpression}`), ExecutionErrorType.USER, cause)
+    }
+}
+
+export class InvalidScheduleIntervalError extends ExecutionError {
+    constructor(intervalMs: number, cause?: unknown) {
+        super('InvalidScheduleIntervalError', formatMessage(`Invalid schedule interval: ${intervalMs} ms`), ExecutionErrorType.USER, cause)
     }
 }
 
@@ -106,12 +124,6 @@ export class FormulaEvaluationError extends ExecutionError {
 export class EngineGenericError extends ExecutionError {
     constructor(name: string, message: string, cause?: unknown) {
         super(name, formatMessage(message), ExecutionErrorType.ENGINE, cause)
-    }
-}
-
-export class PieceNotFoundError extends ExecutionError {
-    constructor(message: string, cause?: unknown) {
-        super('PieceNotFoundError', formatMessage(message), ExecutionErrorType.USER, cause)
     }
 }
 
