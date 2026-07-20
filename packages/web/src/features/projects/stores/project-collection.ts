@@ -56,6 +56,12 @@ export const projectCollection = createCollection<ProjectWithLimits, string>(
         if (modified.releasesEnabled !== original.releasesEnabled) {
           request.releasesEnabled = modified.releasesEnabled;
         }
+        if (
+          modified.notifyFlowOwnerOnFailure !==
+          original.notifyFlowOwnerOnFailure
+        ) {
+          request.notifyFlowOwnerOnFailure = modified.notifyFlowOwnerOnFailure;
+        }
         if (modified.externalId !== original.externalId) {
           request.externalId =
             !isNil(modified.externalId) && modified.externalId.trim() !== ''
@@ -145,6 +151,7 @@ export const projectCollectionUtils = {
   delete: (projectIds: string[]) => {
     projectCollection.delete(projectIds);
   },
+  refetchProjects: () => projectCollection.utils.refetch(),
   setCurrentProject: (projectId: string, pathName?: string) => {
     authenticationSession.switchToProject(projectId);
     if (pathName) {
