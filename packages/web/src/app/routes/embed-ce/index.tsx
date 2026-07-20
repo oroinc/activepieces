@@ -155,6 +155,8 @@ const EmbedCePage = React.memo(() => {
         hideDuplicateFlow: event.data.data.hideDuplicateFlow ?? false,
         hideFlowsPageNavbar: event.data.data.hideFlowsPageNavbar ?? false,
         hidePageHeader: event.data.data.hidePageHeader ?? false,
+        hideActiveUsers: event.data.data.hideActiveUsers ?? false,
+        hideGlobalSearch: event.data.data.hideGlobalSearch ?? false,
       });
     });
 
