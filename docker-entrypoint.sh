@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
+
 export AP_CONTAINER_TYPE="${AP_CONTAINER_TYPE:-WORKER_AND_APP}"
 export AP_PORT="${AP_PORT:-80}"
 export AP_ASSETS_PREFIX="${AP_ASSETS_PREFIX:-}"
