@@ -13,19 +13,38 @@ vi.mock('../../../../../src/app/flows/flow-run/waitpoint/resume-service', () => 
     resumeService: () => ({ resumeFromWaitpoint: mockResumeFromWaitpoint }),
 }))
 
-const { mockSet, mockWhere, mockAndWhere, mockExecute, mockFindOneBy, mockSave, mockTrack, mockSendConversationUpdate } = vi.hoisted(() => ({
+const { mockSet, mockWhere, mockAndWhere, mockExecute, mockFindOneBy, mockFindOne, mockSave, mockTrack, mockSendConversationUpdate } = vi.hoisted(() => ({
     mockSave: vi.fn(),
     mockSet: vi.fn(),
     mockWhere: vi.fn(),
     mockAndWhere: vi.fn(),
     mockExecute: vi.fn().mockResolvedValue({ affected: 1 }),
     mockFindOneBy: vi.fn().mockResolvedValue(null),
+    mockFindOne: vi.fn().mockResolvedValue(null),
     mockTrack: vi.fn().mockResolvedValue(undefined),
     mockSendConversationUpdate: vi.fn(),
 }))
 
 vi.mock('../../../../../src/app/ee/agent/agent-approval-gate', () => ({
     agentApprovalGate: {},
+}))
+
+const { mockRunFromInstruction, mockUpdateStepProgress } = vi.hoisted(() => ({
+    mockRunFromInstruction: vi.fn().mockResolvedValue({ result: { ok: true }, resolvedInput: {} }),
+    mockUpdateStepProgress: vi.fn(),
+}))
+
+vi.mock('../../../../../src/app/flows/flow-run/engine-run-callback-service', () => ({
+    engineRunCallbackService: () => ({ updateStepProgress: mockUpdateStepProgress }),
+}))
+
+vi.mock('../../../../../src/app/ee/agent/tools/piece-tool-runner', () => ({
+    pieceToolRunner: { runFromInstruction: mockRunFromInstruction },
+}))
+
+vi.mock('@activepieces/server-utils', async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    agentAiUtils: { createChatModel: () => ({}) },
 }))
 
 type QueryBuilderMock = {
@@ -38,8 +57,10 @@ type QueryBuilderMock = {
 
 vi.mock('../../../../../src/app/ee/agent/agent-helpers', () => ({
     agentHelpers: {
+        resolveFastModel: () => ({}),
         conversationRepo: () => ({
             findOneBy: mockFindOneBy,
+            findOne: mockFindOne,
             save: mockSave,
             createQueryBuilder: (): QueryBuilderMock => {
                 const builder: QueryBuilderMock = {
@@ -309,6 +330,76 @@ describe('agentRpcHandlers.executeAgentTool — the owner\'s own memory is not a
             conversationId: 'conv-1',
             source: 'FLOW_STEP',
         } as never)).rejects.toThrow()
+    })
+})
+
+describe('agentRpcHandlers.executePieceTool — only a flow-step run may run a configured action', () => {
+    async function runPieceTool(conversation: unknown) {
+        mockRunFromInstruction.mockClear()
+        mockFindOneBy.mockResolvedValue(conversation)
+        const { agentRpcHandlers } = await import('../../../../../src/app/ee/agent/agent-rpc-handlers')
+        return agentRpcHandlers(noopLogger as never).executePieceTool({
+            conversationId: 'conv-1',
+            toolName: 'send_email',
+            instruction: 'email the summary',
+            piece: { pieceName: '@activepieces/piece-gmail', pieceVersion: '0.1.0', actionName: 'send_email' },
+        })
+    }
+
+    it('runs the action in the conversation\'s own project', async () => {
+        await runPieceTool({ id: 'conv-1', source: 'FLOW_STEP', projectId: 'proj-1', platformId: 'plat-1' })
+
+        expect(mockRunFromInstruction).toHaveBeenCalledTimes(1)
+        const call = mockRunFromInstruction.mock.calls[0][0]
+        expect(call.projectId).toBe('proj-1')
+        expect(call.piece).toEqual({ pieceName: '@activepieces/piece-gmail', actionName: 'send_email', pieceVersion: '0.1.0' })
+    })
+
+    it('refuses when the conversation is a chat', async () => {
+        await expect(runPieceTool({ id: 'conv-1', source: 'CHAT', projectId: 'proj-1' })).rejects.toThrow()
+
+        expect(mockRunFromInstruction).not.toHaveBeenCalled()
+    })
+
+    it('refuses a flow-step run with no project, so the action is never run unscoped', async () => {
+        await expect(runPieceTool({ id: 'conv-1', source: 'FLOW_STEP', projectId: null })).rejects.toThrow()
+
+        expect(mockRunFromInstruction).not.toHaveBeenCalled()
+    })
+})
+
+describe('agentRpcHandlers.updateFlowStepProgress — only a flow-step run may report progress', () => {
+
+    let progressConversation = 0
+    async function report(conversation: unknown) {
+        mockUpdateStepProgress.mockClear()
+        mockGetFlowRun.mockClear()
+        mockGetFlowRun.mockResolvedValue({ id: 'run-1' })
+        mockFindOne.mockResolvedValue(conversation)
+        const { agentRpcHandlers } = await import('../../../../../src/app/ee/agent/agent-rpc-handlers')
+        return agentRpcHandlers(noopLogger as never).updateFlowStepProgress({ conversationId: `conv-${++progressConversation}`, flowRunId: 'run-1', output: { steps: [] }, sequence: 1 })
+    }
+
+    it('emits into the project the conversation belongs to, not one the caller named', async () => {
+        await report({ id: 'conv-1', source: 'FLOW_STEP', projectId: 'proj-1' })
+
+        expect(mockUpdateStepProgress).toHaveBeenCalledTimes(1)
+        expect(mockGetFlowRun).toHaveBeenCalledWith({ id: 'run-1', projectId: 'proj-1' })
+    })
+
+
+
+
+    it('refuses when the conversation is a chat', async () => {
+        await expect(report({ id: 'conv-1', source: 'CHAT', projectId: 'proj-1' })).rejects.toThrow()
+
+        expect(mockUpdateStepProgress).not.toHaveBeenCalled()
+    })
+
+    it('refuses a flow-step run with no project', async () => {
+        await expect(report({ id: 'conv-1', source: 'FLOW_STEP', projectId: null })).rejects.toThrow()
+
+        expect(mockUpdateStepProgress).not.toHaveBeenCalled()
     })
 })
 
