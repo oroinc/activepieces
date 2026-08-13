@@ -113,6 +113,11 @@
       "inputs": ["src/**", "test/**", "tsconfig*.json", "vitest.config.*"],
       "outputs": ["coverage/**"]
     },
+    "i18n:check": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**", "tools/**", "package.json"],
+      "outputs": []
+    },
     "test-ce": {
       "dependsOn": ["build"],
       "cache": false
