@@ -118,6 +118,11 @@
       "inputs": ["src/**", "tools/**", "package.json"],
       "outputs": []
     },
+    "i18n:write": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "outputs": []
+    },
     "test-ce": {
       "dependsOn": ["build"],
       "cache": false
