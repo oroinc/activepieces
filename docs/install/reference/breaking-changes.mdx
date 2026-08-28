@@ -88,10 +88,6 @@ Rolling back costs at most the codes issued after the deploy: the older build ca
 
 Sign-up now refuses addresses from throwaway providers such as `mailinator.com` and `guerrillamail.com`, on both the emailed-code flow and the password form. Federated sign-in (Google, SAML, JWT), managed authentication and SCIM provisioning are unaffected, since those addresses come from an identity provider you already trust.
 
-#### The OroCommerce piece signs webhook deliveries by default
-
-The Oro Webhook Event trigger now registers its webhook with a signing secret and discards deliveries whose `Webhook-Signature` header does not match the delivered body. The secret attribute requires OroCommerce 6.1 or newer — on older versions, enabling, re-enabling or republishing a flow with this trigger fails at webhook registration until the trigger's **Sign webhook deliveries** checkbox is turned off. Flows that are already enabled keep running unverified until they are next re-enabled.
-
 #### Plans and credits are now managed by our billing service
 
 Two license-key endpoints are removed: `GET /v1/license-keys/:licenseKey` and `POST /v1/license-keys/verify`. Applying a key is now `POST /v1/platform-billing/activate`.
@@ -109,7 +105,6 @@ In the AI piece, picking the Activepieces-provided AI now lists only the named t
 
 ### Do you need to take action?
 - Only if your members sign up with addresses from a disposable email provider. Set `AP_ALLOW_DISPOSABLE_EMAILS=true` to keep accepting them.
-- Only if a flow uses the Oro Webhook Event trigger against an OroCommerce instance older than 6.1. Untick **Sign webhook deliveries** on the trigger before re-enabling or republishing that flow; existing enabled flows keep working until then.
 - Only if you run the Enterprise edition without a license key. Enter your key so your contracted limits apply instead of the free plan's.
 - Only if you call `GET /v1/license-keys/:licenseKey` or `POST /v1/license-keys/verify`. Both are removed — use `POST /v1/platform-billing/activate` instead.
 - Only if you read `SHOW_BILLING_PAGE`, `CAN_BUY_ACTIVE_FLOWS`, `CAN_BUY_AI_CREDITS` or `SHOW_BILLING_LIMITS_ON_SIDEBAR` from `GET /v1/flags`. They no longer exist.
