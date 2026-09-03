@@ -6587,6 +6587,20 @@
         "tslib": "^2.3.0",
       },
     },
+    "packages/pieces/community/orocommerce": {
+      "name": "@activepieces/piece-orocommerce",
+      "version": "0.3.0",
+      "dependencies": {
+        "@activepieces/core-piece-types": "workspace:*",
+        "@activepieces/core-utils": "workspace:*",
+        "@activepieces/pieces-common": "workspace:*",
+        "@activepieces/pieces-framework": "workspace:*",
+      },
+      "devDependencies": {
+        "tslib": "2.6.2",
+        "vitest": "3.2.6",
+      },
+    },
     "packages/pieces/community/outseta": {
       "name": "@activepieces/piece-outseta",
       "version": "0.2.3",
@@ -12021,6 +12035,8 @@
     "@activepieces/piece-oracle-fusion-cloud-erp": ["@activepieces/piece-oracle-fusion-cloud-erp@workspace:packages/pieces/community/oracle-fusion-cloud-erp"],
 
     "@activepieces/piece-orimon": ["@activepieces/piece-orimon@workspace:packages/pieces/community/orimon"],
+
+    "@activepieces/piece-orocommerce": ["@activepieces/piece-orocommerce@workspace:packages/pieces/community/orocommerce"],
 
     "@activepieces/piece-outseta": ["@activepieces/piece-outseta@workspace:packages/pieces/community/outseta"],
 
