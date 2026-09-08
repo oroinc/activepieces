@@ -37,13 +37,14 @@ recorded together on the tracking ticket: the commit, the sha256 of the `.tgz`, 
 archive read back from `file.data` hashed identically), so the outer sha256 is enough to identify what an
 instance is running.
 
-Current release: **0.3.0** = commit `5fbed5df94`, `head-5fbed5d-0.3.0.tgz`,
-sha256 `09194f3f087b46f96d88eb670c0d5128098c15491f6d653b0c9d631e541804b8`, 67 144 bytes,
+Current release: **1.0.0** = commit `feb45cdf70`, `head-feb45cd-1.0.0.tgz`,
+sha256 `ced1e853f15717b11e8c6282d619c3e0443780c7035c4ced69fbc35915a0663c`, 67 144 bytes,
 `src/index.js` `11ad8876e985a4886be58645474ff5a442eefe4317611ae33feed922faef6cff`.
 
-Version rule: bump `version` in the piece's `package.json` only when the current version has been
-installed somewhere other than a developer rig. Two test builds under one label on one laptop is not a
-reason to bump. Versions must be plain `x.y.z` — Activepieces rejects prerelease suffixes at install.
+Version rule: from 1.0.0 the piece follows semantic versioning, judged from the consumer's side — major
+for a change that breaks an existing flow, minor for new actions, triggers or optional properties, patch
+for fixes that leave the contract intact ([record 10](decisions/0010-piece-versioning-1-0-0-and-semver.md)).
+Versions must still be plain `x.y.z` — Activepieces rejects prerelease suffixes at install.
 
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
 flow built with the old name. Do not rename without a decision on the tracking ticket.
@@ -84,7 +85,9 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 3. Build and pack. Verified 7 Sep 2026 against `5fbed5df94`: these commands reproduced the released
    artifact byte-for-byte — `09194f3f…`, 67 144 bytes, `src/index.js` `11ad8876…` — twice on one machine
    (macOS 26.5.2 arm64, Node 24.13.0, bun 1.3.14, turbo 2.9.14, esbuild 0.28.1). The build is
-   deterministic; the outer `.tgz` hash is stable, not just the inner `index.js`.
+   deterministic; the outer `.tgz` hash is stable, not just the inner `index.js`. 1.0.0 reproduced the
+   same way on the same machine: two builds from clean worktrees of `feb45cdf70` were byte-identical at
+   67 144 bytes.
    ```
    bun install --frozen-lockfile
    mkdir -p dist/packages/cli
@@ -114,8 +117,8 @@ piece must be re-pinned (§6); nothing upgrades automatically.
      rebuild with unchanged inputs as a cache hit, skips esbuild, and leaves the `tsc` `index.js` in
      place. `npm pack` then packs that instead of the bundle: a **~1 KB** tarball with no piece code in
      it, no warning and no error. The artifact is the only place this is visible, so confirm the `.tgz` is
-     **~67 KB** (67 144 bytes for 0.3.0) and hash both it and `package/src/index.js` against the release
-     record in §2 on every build.
+     **~67 KB** (67 144 bytes for both 0.3.0 and 1.0.0) and hash both it and `package/src/index.js`
+     against the release record in §2 on every build.
 
    If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
    not code — record both hashes and say so.
@@ -156,8 +159,8 @@ curl -X POST "$AP_URL/api/v1/pieces" \
   --form-string 'packageType=ARCHIVE' \
   --form-string 'scope=PLATFORM' \
   --form-string 'pieceName=@activepieces/piece-orocommerce' \
-  --form-string 'pieceVersion=0.3.0' \
-  -F 'pieceArchive=@head-5fbed5d-0.3.0.tgz;type=application/gzip'
+  --form-string 'pieceVersion=1.0.0' \
+  -F 'pieceArchive=@head-feb45cd-1.0.0.tgz;type=application/gzip'
 ```
 
 - `--form-string` is mandatory for `pieceName`: it starts with `@`, and `-F` would make curl read a file

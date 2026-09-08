@@ -14,9 +14,10 @@ all; everything else follows from it.
 | [2](0002-exact-version-pinning-and-re-pin.md) | Flows pin the exact piece version; every upgrade is an explicit per-flow re-pin | accepted |
 | [3](0003-api-key-provisioning-by-direct-db-write.md) | On CE the platform API key is created by writing the `api_key` row directly | accepted; proper provisioning path open |
 | [4](0004-two-branch-policy.md) | Two branches: piece code vs embedding/image | accepted |
-| [5](0005-version-bump-rule-and-release-identity.md) | Bump only when installed outside a rig; release = commit + two hashes | accepted |
+| [5](0005-version-bump-rule-and-release-identity.md) | Bump only when installed outside a rig; release = commit + two hashes | **superseded by [10](0010-piece-versioning-1-0-0-and-semver.md)** |
 | [6](0006-upstream-sync-via-origin-main-or-tags.md) | How the fork tracks upstream: `origin/main` or release tags | **open** |
-| [7](0007-piece-package-name.md) | The piece's package name | **open** |
+| [7](0007-piece-package-name.md) | The piece's package name | **open** — more urgent since 10 |
+| [10](0010-piece-versioning-1-0-0-and-semver.md) | 1.0.0 is the first customer release; semver from there | accepted |
 
 Format: context → decision → consequences, with date, status and evidence at the top
 (a light version of [MADR](https://adr.github.io/madr/)). Related procedure: [`../FORK-UPDATE.md`](../FORK-UPDATE.md).
