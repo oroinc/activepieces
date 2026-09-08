@@ -1,9 +1,11 @@
 # Updating the OroCommerce piece and the Activepieces fork
 
 How the `orocommerce` piece is built, released, installed and upgraded, and how this fork tracks upstream
-Activepieces. Written 7 Sep 2026 from a live run on stock CE 0.88.1 (BAP-23454, run log of that date).
+Activepieces. Written 7 Sep 2026 from a live run on stock CE 0.88.1 (the tracking ticket, run log of that date).
 Anything marked **(unverified)** has not yet been executed by following this document — the first person
 to do so should replace the mark with what happened.
+
+Why things are the way they are: see [docs/decisions](decisions/README.md).
 
 ## 1. The two branches
 
@@ -30,9 +32,10 @@ image built that day would have shipped a pre-signing 0.2.0 piece.)
 ## 2. What a release is
 
 A release of the piece is a `.tgz` built from one commit on `poc/orocommerce`, identified by three things
-recorded together on BAP-23454: the commit, the sha256 of the `.tgz`, and the sha256 of `package/src/index.js`
-inside it. Activepieces stores the archive byte-for-byte (verified 7 Sep: the archive read back from
-`file.data` hashed identically), so the outer sha256 is enough to identify what an instance is running.
+recorded together on the tracking ticket: the commit, the sha256 of the `.tgz`, and the sha256 of
+`package/src/index.js` inside it. Activepieces stores the archive byte-for-byte (verified 7 Sep: the
+archive read back from `file.data` hashed identically), so the outer sha256 is enough to identify what an
+instance is running.
 
 Current release: **0.3.0** = commit `5fbed5df94`, `head-5fbed5d-0.3.0.tgz`,
 sha256 `09194f3f087b46f96d88eb670c0d5128098c15491f6d653b0c9d631e541804b8`, 67 144 bytes,
@@ -43,7 +46,7 @@ installed somewhere other than a developer rig. Two test builds under one label 
 reason to bump. Versions must be plain `x.y.z` — Activepieces rejects prerelease suffixes at install.
 
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
-flow built with the old name. Do not rename without a decision on BAP-23454.
+flow built with the old name. Do not rename without a decision on the tracking ticket.
 
 ## 3. Two ways the piece reaches an instance
 
@@ -116,7 +119,8 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 
    If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
    not code — record both hashes and say so.
-4. Record commit + both hashes on BAP-23454 and attach the `.tgz`. Rename it `head-<short-sha>-<version>.tgz`.
+4. Record commit + both hashes on the tracking ticket and attach the `.tgz`. Rename it
+   `head-<short-sha>-<version>.tgz`.
 5. Open a PR into `poc/orocommerce`; merge.
 6. Merge `poc/orocommerce` into `poc/orocommerce_prefixed-path-install` (a PR, not a direct push — the
    embedding branch has its own owner). Re-run the §1 check; it must be empty.
@@ -124,7 +128,7 @@ piece must be re-pinned (§6); nothing upgrades automatically.
    instance.
 8. Re-pin every flow (§6).
 9. Update the Oro companion default (`activepieces_orocommerce_default_piece_version` in the bundle's
-   `services.yml`, and its README line) and the Confluence page's "piece default".
+   `services.yml`, and its README line) and the internal deployment page's "piece default".
 
 ## 5. Installing the tarball on a stock CE instance (customer lane)
 
@@ -181,9 +185,14 @@ Per flow, two calls to `POST /api/v1/flows/{id}`:
 What this does in Oro: the trigger's `onEnable` deletes the flow's existing webhook row and creates a new one
 with a new secret (Oro's webhook secret can only be set on create). Check afterwards in
 `oro_integration_webhook_producer_settings`: **exactly one row** for the flow's URL, `length(secret) = 108`
-(the encrypted form of the 64-hex-char secret the piece generates). Two rows means an old unsigned
-registration is still live. 24 means an empty secret was encrypted — the column is nullable, but a signing
-piece never writes NULL, so `IS NULL` is the wrong test.
+(the encrypted form of the 64-hex-char secret the piece generates).
+
+- Two rows means an old registration is still live alongside the new one — and if it predates 0.3.0, it is
+  unsigned.
+- `length(secret) = 108` is the signing case. `length(secret) = 24` is the encrypted form of an *empty*
+  secret, i.e. no signing.
+- The column is nullable, but a signing piece never writes NULL, so `IS NULL` is the wrong test — compare
+  the length.
 
 Prefer this API path over upgrading in the UI: the UI upgrade resets the connection and topic inputs.
 
@@ -194,7 +203,7 @@ Prefer this API path over upgrading in the UI: the UI upgrade resets the connect
    `packages/pieces/community/orocommerce/` means piece-only policy was broken; fix the policy.
 
    Note: steps 1–2 are not how this fork has actually synced. Every sync so far — **44** merges between
-   29 Jan and 20 Aug 2026, all by Dmytro Khrysiev — merged the fork's own `origin/main` at an **untagged**
+   29 Jan and 20 Aug 2026, all by one maintainer — merged the fork's own `origin/main` at an **untagged**
    tip, and not one landed on a release tag. `git describe` on each merged commit gives an offset; the most
    recent, `cd36237260` of 20 Aug 2026, gives `0.86.3-rc.2-451-g71dd1758dc`, and tag `0.88.1` is not in
    that history at all (4 commits in the tag are missing from it, 83 extra are present). Whether syncs
@@ -206,12 +215,12 @@ Prefer this API path over upgrading in the UI: the UI upgrade resets the connect
    7 Sep merge, which carried the upstream 0.87.0 → 0.88.1 sync, had exactly one conflict: `bun.lock`, two
    hunks (the piece's `version`, and an added `vitest` devDependency), both resolved to the incoming side.
    Every embedding file and `Dockerfile.oro` merged clean.
-4. Bring up a stock CE instance on the new tag and repeat the 7 Sep proof (BAP-23454 results table). Re-check
-   first the facts everything else rests on: `sk-` keys still authenticate on CE without an endpoint;
+4. Bring up a stock CE instance on the new tag and repeat the 7 Sep proof (the tracking ticket results table).
+   Re-check first the facts everything else rests on: `sk-` keys still authenticate on CE without an endpoint;
    `POST /v1/pieces` still exists on CE; `PieceScope` still only `PLATFORM`; the trigger signs unless
    `signDeliveries === false`; sign-up still returns `ONBOARDING`.
 5. Do not bump the piece unless the piece changed. Rebuild the image regardless.
-6. Update the Confluence page's "tested against" version.
+6. Update the internal deployment page's "tested against" version.
 
 ## 8. If the piece merges upstream (Case 3)
 
@@ -224,5 +233,12 @@ package name must be settled before this happens (§2).
 
 ## 9. Do not put in this file
 
-Hostnames, IPs, ports of any instance; keys or secrets; anything about Oro-side provisioning bugs
-(they are tracked on BAP-23454, not here).
+This repository is public. Keep out of it:
+
+- Hostnames, IP addresses or ports of any instance, and any identifier of a test rig.
+- Keys, secrets, tokens or connection strings, redacted or otherwise.
+- Issue-tracker keys, wiki page ids and internal deployment names — refer to "the tracking ticket", "the
+  deployment page", "an internal deployment".
+- The names of individual people — refer to the role: "the branch owner", "the maintainer".
+- Unfixed defects and security findings, and unannounced commercial or packaging decisions. Those live on
+  the tracking ticket, not here.
