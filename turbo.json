@@ -22,7 +22,8 @@
     "AP_SMTP_SENDER_NAME",
     "AP_TOOL_SEARCH_ENABLED",
     "AP_OPENAI_API_KEY",
-    "AP_PIECES_SYNC_MODE"
+    "AP_PIECES_SYNC_MODE",
+    "NODE_EXTRA_CA_CERTS"
   ],
   "tasks": {
     "build": {
