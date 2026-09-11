@@ -122,8 +122,9 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 
    If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
    not code — record both hashes and say so.
-4. Record commit + both hashes on the tracking ticket and attach the `.tgz`. Rename it
-   `head-<short-sha>-<version>.tgz`.
+4. Record commit + both hashes on the tracking ticket and attach the `.tgz`. `npm pack` names it
+   `activepieces-piece-orocommerce-<version>.tgz` (from the package name and version, not from the
+   commit); rename it `head-<short-sha>-<version>.tgz` so the artifact identifies the commit it came from.
 5. Open a PR into `poc/orocommerce`; merge.
 6. Merge `poc/orocommerce` into `poc/orocommerce_prefixed-path-install` (a PR, not a direct push — the
    embedding branch has its own owner). Re-run the §1 check; it must be empty.
@@ -135,23 +136,47 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 
 ## 5. Installing the tarball on a stock CE instance (customer lane)
 
-Preconditions, in order — each one cost hours when skipped:
+### Which path applies
 
-- **A worker is running and connected** ("Connected to API server via Socket.IO" in its log). Without one
-  the install hangs about 300 s and fails with `ENGINE_OPERATION_FAILURE`.
-- `AP_FRONTEND_URL` is the one URL reachable both from the host and from inside the containers. Workers
-  download bundles and open Socket.IO through it, and it is the base of every webhook URL the piece
-  registers in Oro.
-- A platform API key (`sk-…`) exists. On CE there is **no API endpoint** to create one — `authenticate.ts`
-  accepts `sk-` keys via `apiKeyService` with no edition guard, but CE registers no `api-keys` routes. The
-  only way to mint one is a row in `api_key`, which is exactly what the Oro setup command writes:
-  `id` (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`,
-  `hashedValue` = hex SHA-256 of the full key, `truncatedValue` = last 4, `lastUsedAt` NULL. Key format:
-  `sk-` + 61 NanoId chars (`A-Za-z0-9`), 64 total. A key whose hash is not in the table gets 401.
-- On a fresh 0.88.1 instance, sign-up does **not** create a platform. It returns an `ONBOARDING` token;
-  `POST /v1/platforms {"name": …}` with that token creates platform + project and rotates the token.
+Sort yourself before reading anything else:
 
-The install:
+| | Cloud lane (our image) | Customer lane (stock CE) |
+| --- | --- | --- |
+| How the piece gets in | baked into the image as a workspace package by `Dockerfile.oro` | uploaded as a `.tgz` via `POST /v1/pieces` |
+| Served as | in-memory dev piece, no database row | `CUSTOM` / `ARCHIVE` piece, row in `piece_metadata` |
+| Version comes from | the branch's `package.json` | the `pieceVersion` form field |
+| To change the version | rebuild and redeploy the image | rerun this section |
+| `POST /v1/pieces` | not used | Community Edition only |
+
+Cloud lane — you are building the image from the prefixed-path branch: there is nothing to install, and
+the two mechanisms behind that column are §3. Enterprise: neither column applies, because the upload
+endpoint is CE-only (§3); an EE customer needs the image. Customer lane — a stock CE instance, whether a
+testbed or an on-premise customer: the rest of this section.
+
+**The Oro bundle does not upload the piece** (§3): the setup command pins the version but never installs.
+This section is that separate step.
+
+### Preconditions
+
+In order — each one cost hours when skipped.
+
+1. **A worker is running and connected** ("Connected to API server via Socket.IO" in its log). Without one
+   the install hangs about 300 s and fails with `ENGINE_OPERATION_FAILURE`.
+2. **`AP_FRONTEND_URL` is the one URL reachable both from the host and from inside the containers.** Workers
+   download bundles and open Socket.IO through it, and it is the base of every webhook URL the piece
+   registers in Oro.
+3. **A platform API key (`sk-…`) exists.** On CE there is **no API endpoint** to create one —
+   `authenticate.ts` accepts `sk-` keys via `apiKeyService` with no edition guard, but CE registers no
+   `api-keys` routes. The only way to mint one is a row in `api_key`, which is exactly what the Oro setup
+   command writes: `id` (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`,
+   `hashedValue` = hex SHA-256 of the full key, `truncatedValue` = last 4, `lastUsedAt` NULL. Key format:
+   `sk-` + 61 NanoId chars (`A-Za-z0-9`), 64 total. A key whose hash is not in the table gets 401 — and so
+   does a key whose insert has not been committed, with no useful error either way. Commit before calling.
+4. **A platform exists.** On a fresh 0.88.1 instance, sign-up does **not** create one. It returns an
+   `ONBOARDING` token; `POST /v1/platforms {"name": …}` with that token creates platform + project and
+   rotates the token.
+
+### The install
 
 ```
 curl -X POST "$AP_URL/api/v1/pieces" \
@@ -163,20 +188,41 @@ curl -X POST "$AP_URL/api/v1/pieces" \
   -F 'pieceArchive=@head-feb45cd-1.0.0.tgz;type=application/gzip'
 ```
 
-- `--form-string` is mandatory for `pieceName`: it starts with `@`, and `-F` would make curl read a file
-  named `activepieces/piece-orocommerce` and fail with `HTTP 000` before any request is sent.
-- `scope` accepts only `PLATFORM`.
+- `--form-string` for every scalar field, and **mandatory** for `pieceName`: it starts with `@`, and `-F`
+  would make curl read a file named `activepieces/piece-orocommerce` and fail with `HTTP 000` before any
+  request is sent.
+- `scope` accepts only `PLATFORM`. `pieceVersion` is a plain `x.y.z` (§2).
+- **Name and version come from the form fields, not from the tarball.** Mismatched fields install a piece
+  that claims a version its code does not match, with no complaint from either side.
 - 201 = installed. 409 `piece_metadata_already_exists` = this exact name+version is already there, which
   is fine for the piece — but the archive is saved before the duplicate check, so **every 409 leaves an
-  orphan 67 KB `PACKAGE_ARCHIVE` row in `file`**. Check before installing rather than retrying blindly:
-  `GET /api/v1/pieces/@activepieces%2Fpiece-orocommerce` lists installed versions.
+  orphan 67 KB `PACKAGE_ARCHIVE` row in `file`**. Check what is installed first rather than retrying blindly.
 - Never `DELETE` a piece or a version. Versions cannot be removed individually and flows pin them.
-- Verify: the `piece_metadata` row has `pieceType=CUSTOM`, `packageType=ARCHIVE`, and the piece detail
-  endpoint shows 11 actions and 1 trigger (`oro-webhook-event`).
+
+### Listing what is installed
+
+`GET /api/v1/pieces/@activepieces%2Fpiece-orocommerce` returns a **single** metadata object — the latest
+version, or the one named by an optional `?version=` — not a list, and CE has no per-piece versions route.
+To see every installed version, use the registry and filter by name:
+
+```
+GET /api/v1/pieces/registry?release=<ap version>&edition=ce
+```
+
+Both query parameters are mandatory (the schema marks neither optional); the response is `{name, version}`
+entries for the whole registry, so filter it by `@activepieces/piece-orocommerce` yourself.
+Source-read at CE 0.88.1, **not yet run live**.
+
+### Verify
+
+The `piece_metadata` row has `pieceType=CUSTOM` and `packageType=ARCHIVE`, under the unique key
+`(name, version, platformId)`, and the piece detail endpoint shows **11 actions and 1 trigger**
+(`oro-webhook-event`).
 
 ## 6. Re-pinning flows after a version change
 
-Per flow, two calls to `POST /api/v1/flows/{id}`:
+Flows pin the exact version and nothing upgrades automatically, so every flow using the piece needs this
+after any version change. Per flow, two calls to `POST /api/v1/flows/{id}`:
 
 1. `{"type":"UPDATE_TRIGGER","request":{ …the whole trigger object… }}` — the schema requires the full
    trigger (`name`, `type: PIECE_TRIGGER`, `displayName`, `valid`, `lastUpdatedDate`, `settings` with
@@ -185,19 +231,76 @@ Per flow, two calls to `POST /api/v1/flows/{id}`:
    schema and are dropped.
 2. `{"type":"LOCK_AND_PUBLISH","request":{}}`.
 
-What this does in Oro: the trigger's `onEnable` deletes the flow's existing webhook row and creates a new one
-with a new secret (Oro's webhook secret can only be set on create). Check afterwards in
-`oro_integration_webhook_producer_settings`: **exactly one row** for the flow's URL, `length(secret) = 108`
-(the encrypted form of the 64-hex-char secret the piece generates).
+Prefer this API path over upgrading in the UI: the UI upgrade resets the connection and topic inputs.
+
+### The `signDeliveries` trap
+
+Echoing the whole trigger object back with only `pieceVersion` changed is exactly the operation that carries
+an old explicit `signDeliveries: false` forward — and leaves that flow unsigned after the re-pin.
+
+The prop is a checkbox with `defaultValue: true`, but `onEnable` suppresses the secret only on a strict
+`=== false`. **A missing key signs; only an explicit `false` does not.** So a flow whose stored `input`
+still carries `signDeliveries: false` gets re-pinned to the new version and silently stays unsigned: the new
+registration is created without a secret, and because `run()` keys off the secret in the flow's store rather
+than off the prop, it finds none and passes every delivery through unverified. Echoing the trigger object
+back faithfully preserves exactly that.
+
+A migration that re-pins flows in bulk therefore has to **decide** whether to force `signDeliveries` rather
+than preserve it. Echoing it back is the wrong default for any flow that is meant to end up signed; the
+decision has to be made deliberately and recorded, not inherited from whatever the flow happened to store.
+
+### Checking the registration in Oro
+
+The trigger's `onEnable` deletes the flow's existing webhook row and creates a new one with a new secret
+(Oro's webhook secret can only be set on create). Check afterwards in
+`oro_integration_webhook_producer_settings`, filtering on the **flow id**, not on the full URL:
+
+```sql
+SELECT id, notification_url, length(secret)
+FROM oro_integration_webhook_producer_settings
+WHERE notification_url LIKE '%<flowId>%';
+```
+
+Filter by flow id because `notification_url` is built on `AP_FRONTEND_URL`. If that base has changed, a
+surviving old registration sits under the *old* URL, and a query scoped to the current full URL returns
+exactly one row whether or not the stale registration is still live — a false pass. The flow id is stable
+across base-URL changes; the URL around it is not.
+
+Expect **exactly one row**, with `length(secret) = 108`.
 
 - Two rows means an old registration is still live alongside the new one — and if it predates 0.3.0, it is
   unsigned.
-- `length(secret) = 108` is the signing case. `length(secret) = 24` is the encrypted form of an *empty*
-  secret, i.e. no signing.
-- The column is nullable, but a signing piece never writes NULL, so `IS NULL` is the wrong test — compare
-  the length.
+- `length(secret) = 108` is the signing case: the encrypted form of the 64-hex-char secret the piece
+  generates. `length(secret) = 24` is the encrypted form of an *empty* secret, i.e. no signing.
+- `secret` is nullable, but a signing piece never writes NULL, so `IS NULL` is the wrong test — compare the
+  length.
 
-Prefer this API path over upgrading in the UI: the UI upgrade resets the connection and topic inputs.
+### What the piece checks on delivery
+
+Oro sends two headers, captured live on 3 Sep 2026: `Webhook-Signature`, a 64-hex-character HMAC-SHA256
+digest of the body, and `Webhook-Signature-Algorithm: HMAC-SHA256`.
+
+The piece reads **only** `webhook-signature`, and compares it against a bare hex HMAC-SHA256 of the raw body
+— no `sha256=` prefix. It never reads the algorithm header: the string `algorithm` does not occur anywhere
+in the package, so the algorithm Oro declares is neither checked nor honoured and SHA-256 is simply assumed.
+If Oro ever changes it, the piece will not notice; it will just start rejecting every delivery.
+
+A missing or mismatched signature produces HTTP 200, no run, and a single `discarded` warning line in the
+log — so a flow that is discarding every delivery looks healthy from the outside.
+
+### Failure modes (§5 and §6)
+
+| Symptom | Cause |
+| --- | --- |
+| install hangs ~300 s, then `ENGINE_OPERATION_FAILURE` | no worker connected (§5) |
+| `HTTP 000`, nothing sent on the wire | `-F` used for `pieceName` instead of `--form-string` |
+| 401, no useful error | key hash not in `api_key`, or the insert was never committed |
+| 409 `piece_metadata_already_exists` | that name+version is already installed; each attempt leaves an orphan `PACKAGE_ARCHIVE` row in `file` |
+| installs cleanly, but runs cannot find the piece code | ~1 KB tarball from a cached build — rebuild with `--force` (§4) |
+| flow still behaves as it did before | flow not re-pinned |
+| two rows in `oro_integration_webhook_producer_settings` for one flow | stale registration still live; a pre-0.3.0 one is unsigned |
+| `length(secret) = 24` | empty secret — the registration is not signed |
+| re-pinned flow still unsigned, deliveries unverified | an explicit `signDeliveries: false` echoed back by the re-pin |
 
 ## 7. Procedure — new upstream Activepieces release (Case 2) **(unverified as a whole)**
 
