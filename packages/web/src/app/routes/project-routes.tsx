@@ -12,9 +12,11 @@ import { routesThatRequireProjectId } from '@/lib/route-utils';
 import { BuilderLayout } from '../components/builder-layout';
 import { ProjectDashboardLayout } from '../components/project-layout';
 import { AfterImportFlowRedirect } from '../guards/after-import-flow-redirect';
+import { AgentsFlagGuard } from '../guards/agents-flag-guard';
 import { RoutePermissionGuard } from '../guards/permission-guard';
 import { ProjectRouterWrapper } from '../guards/project-route-wrapper';
 
+import { ApprovalsPage } from './approvals';
 import { AutomationsPage } from './automations';
 const AgentEditorPage = lazyWithRetry(
   () => import('./agents/id').then((m) => ({ default: m.AgentEditorPage })),
@@ -25,6 +27,7 @@ const FlowBuilderPage = lazyWithRetry(
   'flow-builder',
 );
 const AnalyticsPage = lazyWithRetry(() => import('./impact'), 'analytics');
+const McpServerPage = lazyWithRetry(() => import('./mcp-server'), 'mcp-server');
 const ProjectReleasesPage = lazyWithRetry(
   () =>
     import('./project-release').then((m) => ({
@@ -90,15 +93,17 @@ export const projectRoutes = [
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleAgent,
     element: (
-      <ProjectDashboardLayout>
-        <RoutePermissionGuard requiredPermissions={[Permission.READ_AGENT]}>
-          <PageTitle title="Agent">
-            <SuspenseWrapper>
-              <AgentEditorPage />
-            </SuspenseWrapper>
-          </PageTitle>
-        </RoutePermissionGuard>
-      </ProjectDashboardLayout>
+      <AgentsFlagGuard>
+        <ProjectDashboardLayout>
+          <RoutePermissionGuard requiredPermissions={[Permission.READ_AGENT]}>
+            <PageTitle title="Agent">
+              <SuspenseWrapper>
+                <AgentEditorPage />
+              </SuspenseWrapper>
+            </PageTitle>
+          </RoutePermissionGuard>
+        </ProjectDashboardLayout>
+      </AgentsFlagGuard>
     ),
   }),
   ...ProjectRouterWrapper({
@@ -242,6 +247,20 @@ export const projectRoutes = [
     ),
   }),
   ...ProjectRouterWrapper({
+    path: routesThatRequireProjectId.approvals,
+    element: (
+      <ProjectDashboardLayout>
+        <RoutePermissionGuard requiredPermissions={Permission.READ_FLOW}>
+          <PageTitle title="Pending approvals">
+            <SuspenseWrapper>
+              <ApprovalsPage />
+            </SuspenseWrapper>
+          </PageTitle>
+        </RoutePermissionGuard>
+      </ProjectDashboardLayout>
+    ),
+  }),
+  ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.settings,
     element: (
       <ProjectDashboardLayout>
@@ -258,6 +277,20 @@ export const projectRoutes = [
             <AnalyticsPage />
           </SuspenseWrapper>
         </PageTitle>
+      </ProjectDashboardLayout>
+    ),
+  },
+  {
+    path: '/mcp-server/:tab?',
+    element: (
+      <ProjectDashboardLayout>
+        <RoutePermissionGuard requiredPermissions={[Permission.READ_MCP]}>
+          <PageTitle title="MCP Server">
+            <SuspenseWrapper>
+              <McpServerPage />
+            </SuspenseWrapper>
+          </PageTitle>
+        </RoutePermissionGuard>
       </ProjectDashboardLayout>
     ),
   },
