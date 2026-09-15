@@ -23,9 +23,8 @@ export default defineConfig(({ command, mode }) => {
   const allowedHosts: string[] = [];
   if (isDev && process.env.AP_FRONTEND_URL) {
     const AP_FRONTEND_URL = new URL(process.env.AP_FRONTEND_URL);
-    const AP_ASSETS_PREFIX = AP_FRONTEND_URL.pathname.replace(/^\/|\/$/, '');
     allowedHosts.push(AP_FRONTEND_URL.host);
-    base = `/${AP_ASSETS_PREFIX}/`;
+    base = AP_FRONTEND_URL.pathname.replace(/\/*$/, '/');
   }
   // << CUSTOMIZATION END: embedding
 

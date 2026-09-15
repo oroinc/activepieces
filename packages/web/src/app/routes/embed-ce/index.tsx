@@ -86,7 +86,7 @@ const handleClientNavigation = () => {
 
 const EmbedCePage = React.memo(() => {
   const { setEmbedState, embedState } = useEmbedding();
-  const { setTheme } = useTheme();
+  const { setTheme, setForceLightMode } = useTheme();
   const { i18n } = useTranslation();
   const { checkAccess } = useAuthorization();
 
@@ -114,6 +114,7 @@ const EmbedCePage = React.memo(() => {
     window.dispatchEvent(new Event('storage'));
 
     if (event.data.data.mode) {
+      setForceLightMode(false);
       setTheme(event.data.data.mode);
     }
 
@@ -157,6 +158,9 @@ const EmbedCePage = React.memo(() => {
         hidePageHeader: event.data.data.hidePageHeader ?? false,
         hideActiveUsers: event.data.data.hideActiveUsers ?? false,
         hideGlobalSearch: event.data.data.hideGlobalSearch ?? false,
+        formulasDocsUrl: event.data.data.formulasDocsUrl,
+        gtmContainerId: event.data.data.gtmContainerId,
+        clarityProjectId: event.data.data.clarityProjectId,
       });
     });
 
@@ -169,6 +173,7 @@ const EmbedCePage = React.memo(() => {
   };
 
   useEffectOnce(() => {
+    setForceLightMode(true);
     const event: ActivepiecesClientInit = {
       type: ActivepiecesClientEventName.CLIENT_INIT,
       data: {},
