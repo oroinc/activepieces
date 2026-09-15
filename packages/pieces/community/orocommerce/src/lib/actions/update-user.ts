@@ -10,11 +10,13 @@ import {
   userRolesMultiDropdown,
   userGroupsMultiDropdown,
   userAuthStatusDropdown,
+  booleanUpdateDropdown,
+  readBooleanUpdate,
   additionalAttributesProp,
   additionalRelationsProp,
   additionalHeadersProp,
+  toHeaderRecord,
 } from '../common';
-import { OroAuth } from '../common/types';
 import { jsonApiBodyUtils } from '../common/jsonapi';
 
 export const updateUserAction = createAction({
@@ -44,7 +46,8 @@ export const updateUserAction = createAction({
     }),
     password: Property.ShortText({
       displayName: 'Password',
-      description: 'New password for the account. Must comply with the system security policy.',
+      description:
+        'New password for the account. Prefer a value from a secret store over a literal one.',
       required: false,
     }),
     firstName: Property.ShortText({
@@ -83,10 +86,9 @@ export const updateUserAction = createAction({
       description: 'Birth date in YYYY-MM-DD format.',
       required: false,
     }),
-    enabled: Property.Checkbox({
+    enabled: booleanUpdateDropdown({
       displayName: 'Enabled',
       description: 'Enable or disable the user account.',
-      required: false,
     }),
 
     // -- Relationships ---------------------------------------------------------
@@ -116,7 +118,7 @@ export const updateUserAction = createAction({
         password: p.password,
         firstName: p.firstName,
         lastName: p.lastName,
-        enabled: p.enabled ?? undefined,
+        enabled: readBooleanUpdate(p.enabled),
         namePrefix: p.namePrefix,
         middleName: p.middleName,
         nameSuffix: p.nameSuffix,
@@ -140,10 +142,16 @@ export const updateUserAction = createAction({
       ...extraRels,
     };
 
+    jsonApiBodyUtils.assertUpdateNotEmpty({
+      attributes,
+      relationships,
+      actionName: 'Update User',
+    });
+
     const response = await oroApiCall({
       method: HttpMethod.PATCH,
       resourceUri: `/users/${p.userId}`,
-      auth: context.auth as OroAuth,
+      auth: context.auth,
       body: {
         data: {
           type: 'users',
@@ -152,7 +160,7 @@ export const updateUserAction = createAction({
           relationships,
         },
       },
-      headers: p.additionalHeaders as Record<string, string>,
+      headers: toHeaderRecord({ value: p.additionalHeaders }),
     });
 
     return response.body;
