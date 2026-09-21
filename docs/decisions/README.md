@@ -15,7 +15,7 @@ all; everything else follows from it.
 | [3](0003-api-key-provisioning-by-direct-db-write.md) | On CE the platform API key is created by writing the `api_key` row directly | accepted; proper provisioning path open |
 | [4](0004-two-branch-policy.md) | Two branches: piece code vs embedding/image | accepted |
 | [5](0005-version-bump-rule-and-release-identity.md) | Bump only when installed outside a rig; release = commit + two hashes | **superseded by [10](0010-piece-versioning-1-0-0-and-semver.md)** |
-| [6](0006-upstream-sync-via-origin-main-or-tags.md) | How the fork tracks upstream: `origin/main` or release tags | **open** |
+| [6](0006-upstream-sync-via-origin-main-or-tags.md) | Phased upstream sync: `origin/main` during development, a release tag at release | accepted |
 | [7](0007-piece-package-name.md) | The piece's package name | **open** — more urgent since 10 |
 | [10](0010-piece-versioning-1-0-0-and-semver.md) | 1.0.0 is the first customer release; semver from there | accepted |
 

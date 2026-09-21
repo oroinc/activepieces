@@ -302,26 +302,44 @@ log — so a flow that is discarding every delivery looks healthy from the outsi
 | `length(secret) = 24` | empty secret — the registration is not signed |
 | re-pinned flow still unsigned, deliveries unverified | an explicit `signDeliveries: false` echoed back by the re-pin |
 
-## 7. Procedure — new upstream Activepieces release (Case 2) **(unverified as a whole)**
+## 7. Procedure — new upstream Activepieces sync (Case 2)
 
-1. `git remote add upstream https://github.com/activepieces/activepieces` if absent; `git fetch upstream --tags`.
-2. On `poc/orocommerce`: `git merge <tag>`. Expect zero conflicts. A conflict outside
+1. Pick the ref for the project stage
+   ([record 6](decisions/0006-upstream-sync-via-origin-main-or-tags.md)). While the integration is under
+   development the fork syncs from its own `origin/main`, to meet upstream's changes — and upstream's
+   breakage — as early as possible. When it is ready for release the fork moves onto the upstream release
+   tag, and stays there.
+
+   - **Development phase.** `git fetch origin`, then merge `origin/main`. A requirement from the fork's
+     owner, 21 Sep 2026: **check that upstream `main` is healthy before merging it.** What counts as
+     healthy is not defined — no check is named and no pass condition is stated — so until one exists this
+     is a judgement you make and write down, not a command you run. It is not a theoretical requirement:
+     upstream `main` was broken during the week of 14 Sep 2026 and two syncs were taken from it that week
+     regardless (`c932f4addd`, 14 Sep; `f3f39a6284`, 15 Sep). This is the phase the fork has been in
+     throughout — **47** merges between 29 Jan and 21 Sep 2026, all by one maintainer, all of
+     `origin/main` at an **untagged** tip.
+   - **Release phase (unverified).** `git remote add upstream
+     https://github.com/activepieces/activepieces` if absent; `git fetch upstream --tags`; the ref is the
+     release tag `<x.y.z>`, with no `v` prefix — upstream publishes no `v`-prefixed tags. Upstream also
+     publishes a `release/v<x.y.z>` branch per release, but it is a different commit from the
+     same-numbered tag more often than not — of the 165 release branches carrying a plain `x.y.z`, 103
+     differ from the tag, 55 equal it and 7 have no tag (21 Sep 2026) — so it is not a substitute for the
+     tag. This half has never been run in this fork.
+2. On `poc/orocommerce`: `git merge <ref>`. Expect zero conflicts. A conflict outside
    `packages/pieces/community/orocommerce/` means piece-only policy was broken; fix the policy.
 
-   Note: steps 1–2 are not how this fork has actually synced. Every sync so far — **44** merges between
-   29 Jan and 20 Aug 2026, all by one maintainer — merged the fork's own `origin/main` at an **untagged**
-   tip, and not one landed on a release tag. `git describe` on each merged commit gives an offset; the most
-   recent, `cd36237260` of 20 Aug 2026, gives `0.86.3-rc.2-451-g71dd1758dc`, and tag `0.88.1` is not in
-   that history at all (4 commits in the tag are missing from it, 83 extra are present). Whether syncs
-   should go through `origin/main` or upstream tags is an open question for the branch owner; until it is
-   answered, treat steps 1–2 as a proposal rather than the procedure.
+   A development-phase merge leaves the fork on no released version, and any report of what it runs should
+   say so. `git describe` on a merged commit gives an offset, not a version: `cd36237260` of 20 Aug 2026
+   gives `0.86.3-rc.2-451-g71dd1758dc`, and tag `0.88.1` is not in that history at all — 4 commits in the
+   tag are missing from it, 83 extra are present.
 3. On `poc/orocommerce_prefixed-path-install`: `git merge poc/orocommerce`. Conflicts are possible in the
    embedding patches and `Dockerfile.oro` — they are the only files the fork changes outside the piece, so
    they are the only ones that can conflict — but they are not to be expected as a matter of course. The
    7 Sep merge, which carried the upstream 0.87.0 → 0.88.1 sync, had exactly one conflict: `bun.lock`, two
    hunks (the piece's `version`, and an added `vitest` devDependency), both resolved to the incoming side.
    Every embedding file and `Dockerfile.oro` merged clean.
-4. Bring up a stock CE instance on the new tag and repeat the 7 Sep proof (the tracking ticket results table).
+4. Bring up a stock CE instance on the new upstream version and repeat the 7 Sep proof (the tracking
+   ticket results table).
    Re-check first the facts everything else rests on: `sk-` keys still authenticate on CE without an endpoint;
    `POST /v1/pieces` still exists on CE; `PieceScope` still only `PLATFORM`; the trigger signs unless
    `signDeliveries === false`; sign-up still returns `ONBOARDING`.
