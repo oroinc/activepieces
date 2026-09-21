@@ -8,6 +8,8 @@ import {
   CreateAgentRequest,
   DraftAgentRequest,
   DraftAgentResponse,
+  AgentRunListItem,
+  ListAgentRunsRequest,
   ListAgentsRequest,
   MoveAgentRequest,
   UpdateAgentRequest,
@@ -43,5 +45,16 @@ export const agentsApi = {
   },
   delete(id: string): Promise<void> {
     return api.delete<void>(`/v1/agents/${id}`);
+  },
+  getRun(id: string, projectId: string): Promise<AgentRunListItem> {
+    return api.get<AgentRunListItem>(`/v1/agents/conversations/runs/${id}`, {
+      projectId,
+    });
+  },
+  listRuns(request: ListAgentRunsRequest): Promise<SeekPage<AgentRunListItem>> {
+    return api.get<SeekPage<AgentRunListItem>>(
+      '/v1/agents/conversations/runs',
+      request,
+    );
   },
 };

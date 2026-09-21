@@ -12,6 +12,8 @@ import { queryClient } from '@/app/query-client';
 import { basePath } from '@/lib/base-path';
 
 import { ApStorage } from './ap-browser-storage';
+import { telemetryUtils } from './telemetry-utils';
+
 const tokenKey = 'token';
 const projectIdKey = 'projectId';
 export const authenticationSession = {
@@ -129,7 +131,11 @@ export const authenticationSession = {
     ApStorage.getInstance().removeItem(tokenKey);
   },
   logOut() {
+    const hadSession = !isNil(this.getToken());
     this.clearSession();
+    if (hadSession) {
+      telemetryUtils.resetIdentity();
+    }
     window.location.href = `${basePath}sign-in`;
   },
 };
