@@ -6645,7 +6645,7 @@
     },
     "packages/pieces/community/orocommerce": {
       "name": "@activepieces/piece-orocommerce",
-      "version": "0.3.0",
+      "version": "1.0.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
