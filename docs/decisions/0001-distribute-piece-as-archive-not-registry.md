@@ -27,6 +27,16 @@ accepts it.
 Separately, the package name is undecided (upstream PR #13859 is open; renaming a piece orphans every flow
 built with the old name), so publishing to npm now would lock in a name we may regret.
 
+## Options
+
+1. Publish to npm and install as `REGISTRY`. Blocked twice over: CE registry resolution is a closed loop
+   for a package the instance has never seen, and publishing locks in a package name that is still
+   undecided (record 7).
+2. Upload the `.tgz` with `POST /v1/pieces` as `ARCHIVE`. Works on stock CE with no extra infrastructure;
+   depends on an endpoint the vendor treats as a paid-edition feature.
+3. Bake the piece into our image only. No upload step at all, but every customer would have to run our
+   image - the stock-CE customer lane disappears.
+
 ## Decision
 
 Ship the piece as a `.tgz` built from one commit on `poc/orocommerce` and install it with

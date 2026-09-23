@@ -8,7 +8,7 @@ on upstream, 21 Sep 2026; the fork owner's decision, 21 Sep 2026
 ## Context
 
 The fork's `main` mirrors upstream. Between 29 Jan and 21 Sep 2026 there were 47 syncs into
-`poc/orocommerce`, all by one maintainer, all merging `origin/main` at whatever commit it was on — never an
+`poc/orocommerce`, all by the fork owner, all merging `origin/main` at whatever commit it was on - never an
 upstream release tag. The 20 Aug sync (`cd36237260`) put the branch at
 `0.86.3-rc.2-451-g71dd1758dc`: near 0.88.1 but not equal to it (83 commits present that the tag lacks, 4
 missing that it has).
@@ -44,7 +44,7 @@ all**: divergence is the normal case, not the exception.
 
 ## Decision
 
-Option 4, phased by project stage. Decided by the fork's owner, 21 Sep 2026.
+Option 4, phased by project stage. Decided by the fork owner, 21 Sep 2026.
 
 While the integration is under development, sync from `origin/main`, so that upstream's changes and the
 problems they bring surface here as early as possible. **Check that upstream `main` is healthy before each

@@ -1,12 +1,13 @@
 # 2. Flows pin the exact piece version; every upgrade is an explicit per-flow re-pin
 
 Date: 2026-09-07 (behaviour established 3 Sep 2026, confirmed 7 Sep 2026)
-Status: accepted (this is Activepieces behaviour we live with, not a choice we made)
+Status: accepted
 Evidence: upgrade rehearsal 3 Sep 2026 (internal upgrade-rehearsal results); an internal run log, 7 Sep 2026
 
 ## Context
 
-An Activepieces flow stores the piece name *and exact version* in each trigger and action step. Installing
+This record documents Activepieces behaviour we live with, not a choice we made. An Activepieces flow
+stores the piece name *and exact version* in each trigger and action step. Installing
 a newer piece version does nothing to existing flows; they keep running the version they were built with.
 There is no "latest" and no automatic upgrade, for official pieces or ours.
 

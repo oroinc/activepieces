@@ -1,8 +1,7 @@
 # 3. On Community Edition the platform API key is created by writing the `api_key` row directly
 
 Date: 2026-09-07
-Status: accepted as the only available mechanism; a proper provisioning path remains an open decision
-(owner and date not set)
+Status: accepted
 Evidence: an internal run log, 7 Sep 2026; `authenticate.ts`, `app.ts` in the fork at `5fbed5df94`;
 the Oro bundle's provisioning command
 
@@ -26,7 +25,7 @@ The same command also writes `app_connection`, `user`, `project` and `platform.p
 
 ## Decision
 
-Accept the direct `api_key` write as the provisioning mechanism for CE, and document the exact row shape
+Accept the direct `api_key` write as the only available provisioning mechanism for CE, and document the exact row shape
 so it is reviewable. Record the five direct-write surfaces as the specification any future provisioning
 path must replace.
 
@@ -37,6 +36,7 @@ path must replace.
 - The key is readable by anyone with Oro DB read plus the app secret, or console access — same as any
   Oro-stored credential; nothing extra.
 - Follow-ups on the provisioning command are tracked internally with the integration ticket.
+- A proper provisioning path remains an open decision (owner and date not set).
 - On EE, an API-key endpoint exists; whether the bundle should use it there instead of the DB write is
   part of the open provisioning decision.
 - Three of the five direct writes are avoidable even on CE (findings of 21 Aug 2026): CE exposes

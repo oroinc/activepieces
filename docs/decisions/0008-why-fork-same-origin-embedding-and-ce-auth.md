@@ -2,7 +2,7 @@
 
 Date: 2026-09-07 (decision in place since fork PR #1, 10 Aug 2026; topology decided on the internal
 deployment page, v3 26 Jun 2026)
-Status: accepted; the alternative that would shrink the fork is parked (one maintainer, 2 Sep 2026)
+Status: accepted
 Evidence: internal analysis of the fork's patches and of the embedding and provisioning behaviour, held
 with the integration ticket; the internal deployment page;
 `.agents/skills/prefixed-path-rebase/SKILL.md` in the fork
@@ -28,6 +28,17 @@ stamps `Content-Security-Policy: frame-ancestors 'self' …` on every response, 
 allowed with no allow-list configuration at all. And a same-origin page can hand the embedded builder an
 AP session through shared browser storage — the only hand-off available when the token-exchange endpoint
 does not exist.
+
+## Options
+
+1. Maintain a fork: patch the web app for path-prefix support, add a CE embed route, ship a custom image.
+   Everything works on CE today; the price is a standing maintenance liability.
+2. No custom image: a reverse proxy serves a CI-built static `dist/` with the prefix baked in and
+   reproduces five behaviours of the stock server, so the stock image serves `/api/*` unchanged. Parked;
+   the eleven frontend files still need patching at build time, and it would still have to solve how the
+   piece reaches a stock image.
+3. An EE licence and upstream's own embedding (`managed-authn`, the embed SDK). Would reduce the fork to
+   the piece alone; an EE licence is not on the table today.
 
 ## Decision
 

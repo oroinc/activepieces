@@ -1,7 +1,7 @@
 # 7. The piece's package name
 
 Date: 2026-09-07
-Status: **open** — decision needed before upstream PR #13859 moves or anything is published to npm
+Status: proposed
 Evidence: the tracking ticket description and comments of 19 Aug 2026; upstream PR
 activepieces/activepieces#13859
 
@@ -32,8 +32,10 @@ Three pressures pull in different directions:
 
 ## Decision
 
-Not taken. Sits on the tracking ticket with the release record; must precede the first install on any instance
-that will keep its flows (an internal deployment included).
+Not taken. The piece maintainer decides it ([11](0011-piece-ownership.md)), and the decision is needed
+before upstream PR #13859 moves or anything is published to npm. Sits on the tracking ticket with the
+release record; must precede the first install on any instance that will keep its flows (an internal
+deployment included).
 
 ## Consequences (of leaving it open)
 

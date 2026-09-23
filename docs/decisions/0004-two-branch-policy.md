@@ -1,6 +1,6 @@
 # 4. Two branches: piece code on `poc/orocommerce`, embedding and image on `poc/orocommerce_prefixed-path-install`
 
-Date: 2026-09-07 (policy stated 27 Aug 2026 by the branch owner and 3 Sep 2026 by one maintainer, Slack)
+Date: 2026-09-07 (policy stated 27 Aug 2026 by the fork owner and 3 Sep 2026 by the piece maintainer, Slack)
 Status: accepted
 Evidence: Slack 27 Aug, 3 Sep 2026; `FORK-UPDATE.md` §1; an internal run log, 7 Sep 2026
 
@@ -13,6 +13,14 @@ embedding work — running Activepieces under Oro's URL prefix, the Oro Docker i
 
 Mixing them on one branch makes the upstream proposal impossible to keep clean, and makes every upstream
 sync a fight over unrelated conflicts.
+
+## Options
+
+1. One branch carrying both the piece and the embedding work. Nothing to keep in step, but the upstream
+   piece proposal can never be kept clean, and every upstream sync fights unrelated conflicts.
+2. Two branches: the piece alone on one, embedding and image on top of it on the other. A clean upstream
+   proposal and cheaper syncs, at the price of an invariant somebody has to check - the image branch must
+   always contain everything on the piece branch.
 
 ## Decision
 
@@ -36,9 +44,6 @@ sync a fight over unrelated conflicts.
   upstream if it applies there, otherwise the image branch, never `poc/orocommerce`.
 - Whoever bumps the piece is responsible for opening the sync PR to the image branch in the same release;
   otherwise the two lanes ship different code.
-- **This repository is public.** Documentation here — including these records and pull-request text —
-  carries no ticket keys, internal page ids, person names, internal deployment names, hostnames or
-  unresolved security findings. Those stay in the internal tracker; the repo uses neutral wording.
 
 **Addendum, 23 Sep 2026.** The check is empty again: the image branch was brought up to date by merge
 `85ef48ea79`, which includes the 1.0.0 release.
