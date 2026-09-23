@@ -1,0 +1,41 @@
+import { createPiece } from '@activepieces/pieces-framework';
+import { PieceCategory } from '@activepieces/pieces-framework';
+import { oroAuth } from './lib/common';
+import { oroWebhookTopicTrigger } from './lib/triggers/webhook-topic-trigger';
+import {
+  createInvoiceAction,
+  createOrderAction,
+  createCustomerAction,
+  updateCustomerAction,
+  createCustomerUserAction,
+  updateCustomerUserAction,
+  createUserAction,
+  updateUserAction,
+  customApiCallAction,
+  serializeJsonApiAction,
+  unserializeJsonApiAction,
+} from './lib/actions';
+
+export const orocommerce = createPiece({
+  displayName: 'OroCommerce',
+  auth: oroAuth,
+  minimumSupportedRelease: '0.86.0',
+  logoUrl: 'https://static.oroinc.com/logo/O%28logo%29.svg',
+  categories: [PieceCategory.COMMERCE],
+  description: 'B2B digital commerce solution',
+  authors: ['Oro Inc.'],
+  actions: [
+    createInvoiceAction,
+    createOrderAction,
+    createCustomerAction,
+    updateCustomerAction,
+    createCustomerUserAction,
+    updateCustomerUserAction,
+    createUserAction,
+    updateUserAction,
+    customApiCallAction,
+    serializeJsonApiAction,
+    unserializeJsonApiAction,
+  ],
+  triggers: [oroWebhookTopicTrigger],
+});

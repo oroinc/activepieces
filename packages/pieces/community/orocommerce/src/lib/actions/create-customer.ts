@@ -1,0 +1,149 @@
+import { createAction, Property } from '@activepieces/pieces-framework';
+import { HttpMethod } from '@activepieces/pieces-common';
+import {
+  oroAuth,
+  oroApiCall,
+  customerDropdown,
+  customerGroupDropdown,
+  customerTaxCodeDropdown,
+  customerRatingDropdown,
+  organizationDropdown,
+  userDropdown,
+  paymentTermDropdown,
+  baseAddressArrayItemProps,
+  addressTypeProps,
+  buildIncludedAddress,
+  toAddressRow,
+  additionalAttributesProp,
+  additionalRelationsProp,
+  additionalHeadersProp,
+  toHeaderRecord,
+} from '../common';
+import { jsonApiBodyUtils } from '../common/jsonapi';
+
+export const createCustomerAction = createAction({
+  auth: oroAuth,
+  name: 'create_customer',
+  displayName: 'Create Customer',
+  description: 'Creates a new customer (company) record in OroCommerce.',
+  props: {
+    // -- Required attributes ---------------------------------------------------
+    name: Property.ShortText({
+      displayName: 'Name',
+      description:
+        'A human-readable name that identifies the customer (company).',
+      required: true,
+    }),
+
+    // -- Optional attributes ---------------------------------------------------
+    externalId: Property.ShortText({
+      displayName: 'External ID',
+      description: 'A unique identifier from an external system.',
+      required: false,
+    }),
+    vat_id: Property.ShortText({
+      displayName: 'VAT ID',
+      description: "Customer's value added tax identification number.",
+      required: false,
+    }),
+
+    // -- Optional relationships ------------------------------------------------
+    parent: {
+      ...customerDropdown,
+      displayName: 'Parent Customer',
+      description: 'The parent company this customer (division) reports to.',
+    },
+    group: customerGroupDropdown,
+    taxCode: customerTaxCodeDropdown,
+    internalRating: customerRatingDropdown,
+    owner: userDropdown,
+    organization: organizationDropdown,
+    paymentTerm: paymentTermDropdown,
+
+    // -- Addresses -------------------------------------------------------------
+    addresses: Property.Array({
+      displayName: 'Addresses',
+      description: 'Customer addresses to create along with the customer.',
+      required: false,
+      properties: {
+        ...baseAddressArrayItemProps,
+        primary: Property.Checkbox({
+          displayName: 'Primary',
+          description: 'Mark this address as the primary customer address.',
+          required: false,
+        }),
+        ...addressTypeProps,
+      },
+    }),
+    additionalAttributes: additionalAttributesProp,
+    additionalRelations: additionalRelationsProp,
+    additionalHeaders: additionalHeadersProp,
+  },
+
+  async run(context) {
+    const p = context.propsValue;
+
+    const addresses = (p.addresses ?? []).flatMap((row, index) => {
+      const lid = `addr_${index + 1}`;
+      const resource = buildIncludedAddress({
+        lid,
+        type: 'customeraddresses',
+        addr: toAddressRow(row),
+      });
+      return resource ? [{ lid, resource }] : [];
+    });
+
+    const included = addresses.map(({ resource }) => resource);
+    const addressRelData = addresses.map(({ lid }) => ({
+      type: 'customeraddresses',
+      id: lid,
+    }));
+
+    const extraAttrs = jsonApiBodyUtils.parseAdditionalAttributes(p.additionalAttributes);
+    const extraRels = jsonApiBodyUtils.parseAdditionalRelations(p.additionalRelations);
+
+    const attributes = {
+      name: p.name,
+      ...jsonApiBodyUtils.pickDefined({
+        externalId: p.externalId,
+        vat_id: p.vat_id,
+      }),
+      ...extraAttrs,
+    };
+
+    const relationships = {
+      ...jsonApiBodyUtils.buildRels({
+        parent: ['customers', p.parent],
+        group: ['customergroups', p.group],
+        taxCode: ['customertaxcodes', p.taxCode],
+        internal_rating: ['customerratings', p.internalRating],
+        owner: ['users', p.owner],
+        organization: ['organizations', p.organization],
+        paymentTerm: ['paymentterms', p.paymentTerm],
+      }),
+      ...(addressRelData.length > 0
+        ? { addresses: { data: addressRelData } }
+        : {}),
+      ...extraRels,
+    };
+
+    const body: Record<string, unknown> = {
+      data: {
+        type: 'customers',
+        attributes,
+        relationships
+      },
+    };
+    if (included.length > 0) body['included'] = included;
+
+    const response = await oroApiCall({
+      method: HttpMethod.POST,
+      resourceUri: '/customers',
+      auth: context.auth,
+      body,
+      headers: toHeaderRecord({ value: p.additionalHeaders }),
+    });
+
+    return response.body;
+  },
+});
