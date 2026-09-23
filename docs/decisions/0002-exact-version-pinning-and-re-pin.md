@@ -39,3 +39,7 @@ The UI "upgrade" path is not used: it resets the connection and topic inputs.
   new connections point at a version that may not be installed.
 - A scripted re-pin (list flows using the piece → two calls each → verify) is the natural next tool;
   today it is done by hand.
+- Echoing the whole trigger object with only `pieceVersion` changed carries an explicit
+  `signDeliveries: false` forward and leaves the flow unsigned, so a bulk re-pin must decide whether to
+  force it rather than preserve it (see [`FORK-UPDATE.md` §6](../FORK-UPDATE.md), "The `signDeliveries`
+  trap").

@@ -18,16 +18,18 @@ Tested 1 Sep 2026 on stock CE 0.88.1 with `piece-slack@0.5.0` (on npm, no metada
 package at two versions in both orders. Official catalog pieces are unaffected because the catalog is seeded
 into `piece_metadata` at boot; `piece-slack@0.17.9` installed fine from the registry.
 
-Enterprise and Cloud editions use a different module (`pieceSetModule`); their behaviour for unknown
-packages is untested. The vendor documents piece management as an enterprise feature and hides the archive
-option in the CE UI while leaving it open in the CE API (`POST /v1/pieces`).
+Enterprise and Cloud editions register the same endpoint through `platformPieceModule` and run the same
+shared install service and registry-resolution code; that behaviour is untested there. The archive upload
+endpoint (`POST /v1/pieces`, platform admin only) exists on every edition. The vendor documents uploading
+private pieces as a paid-edition feature and hides the option in the CE UI, while the CE API still
+accepts it.
 
 Separately, the package name is undecided (upstream PR #13859 is open; renaming a piece orphans every flow
 built with the old name), so publishing to npm now would lock in a name we may regret.
 
 ## Decision
 
-Ship the piece as a `.tgz` built from a tagged commit on `poc/orocommerce` and install it with
+Ship the piece as a `.tgz` built from one commit on `poc/orocommerce` and install it with
 `POST /v1/pieces` as `packageType=ARCHIVE`, `scope=PLATFORM`. Do not publish to npm until the name is
 decided and a registry install path is shown to work on the editions we target. Do not file the CE
 registry behaviour upstream: the likely outcome is "working as intended", possibly with the same gate
@@ -36,11 +38,15 @@ applied to the archive path we depend on.
 ## Consequences
 
 - The customer runbook must carry the upload step; the Oro bundle's setup command does not install pieces.
-- `POST /v1/pieces` exists only on CE. Customers on EE/Cloud cannot take this path and need our image
-  (which bakes the piece in as a dev piece). Whether EE offers an equivalent install route is open.
+- `POST /v1/pieces` exists on EE/Cloud too (through `platformPieceModule`, platform admin only), but an
+  `ARCHIVE` install there is untested.
 - The release identity is the tarball's sha256 plus the commit; AP stores the archive byte-for-byte.
 - Every piece version bump means an explicit upload per instance and a re-pin per flow.
-- Re-check this decision at every Activepieces version bump: one curl re-testing the archive install on
-  the new CE version, in case the archive path gains the enterprise gate.
+- The customer lane depends on the CE API accepting `POST /v1/pieces` with `ARCHIVE`, while the vendor
+  documents uploading private pieces as a paid-edition feature
+  ([Private pieces](https://www.activepieces.com/docs/build-pieces/sharing-pieces/private), checked
+  23 Sep 2026) and already hides it in the CE UI - a future release could close the CE endpoint too,
+  leaving stock CE customers with no install path other than our image. Re-test the archive install with
+  one curl on every Activepieces version bump.
 - If upstream ever fixes registry resolution for unknown packages, images already deployed still carry
   the old resolver, so the archive path stays the baseline regardless.

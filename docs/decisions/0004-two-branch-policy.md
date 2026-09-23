@@ -39,3 +39,6 @@ sync a fight over unrelated conflicts.
 - **This repository is public.** Documentation here — including these records and pull-request text —
   carries no ticket keys, internal page ids, person names, internal deployment names, hostnames or
   unresolved security findings. Those stay in the internal tracker; the repo uses neutral wording.
+
+**Addendum, 23 Sep 2026.** The check is empty again: the image branch was brought up to date by merge
+`85ef48ea79`, which includes the 1.0.0 release.

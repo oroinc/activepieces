@@ -71,9 +71,11 @@ of the env file; changing either one changes the cloud lane. Changing the piece 
 connection and the platform API key, and pins the piece version — it never installs the piece. The upload is
 a separate step that the deployment runbook has to carry (§5).
 
-**The upload endpoint exists only on Community Edition.** `communityPiecesModule` is registered solely in
-the CE branch of `app.ts`; Enterprise and Cloud editions have no `POST /v1/pieces`. A customer on EE cannot
-take the customer lane at all — they need the image.
+**The upload endpoint exists on every edition.** CE registers it through `communityPiecesModule`,
+Enterprise and Cloud through `platformPieceModule` - the same `POST /v1/pieces`, platform admin only,
+backed by the same install service. The vendor documents uploading private pieces as a paid-edition
+feature and hides the option in the CE UI, while the CE API still accepts it. An `ARCHIVE` install on
+EE/Cloud is untested; only the CE path has been proven.
 
 Either way, a flow pins the **exact** piece version. After any version change every flow that uses the
 piece must be re-pinned (§6); nothing upgrades automatically.
@@ -104,6 +106,13 @@ piece must be re-pinned (§6); nothing upgrades automatically.
    rewrites the manifest (`main: ./src/index.js`, `dependencies: {}`, and a `files` allow-list) and prunes
    `dist/` to exactly the eight files that get published. `npm pack` therefore runs in the piece's own
    `dist/`, not in `dist/packages/…`.
+
+   The Activepieces CLI's own command, `bun run build-piece orocommerce`, reproduced 1.0.0 byte for byte
+   on `feb45cdf70` (23 Sep 2026, same toolchain as above) and needs no symlink, because it runs the CLI
+   from source. On the current `poc/orocommerce` tip it fails before building, on a type error in
+   upstream code (`packages/core/utils/src/lib/deno.ts`) that only appears under the CLI's looser
+   TypeScript settings. Until that is fixed upstream, use the procedure below. The CLI also hides turbo's
+   output, so the tarball size check matters just as much with it.
 
    Two rules follow, and neither is optional:
 
@@ -146,12 +155,12 @@ Sort yourself before reading anything else:
 | Served as | in-memory dev piece, no database row | `CUSTOM` / `ARCHIVE` piece, row in `piece_metadata` |
 | Version comes from | the branch's `package.json` | the `pieceVersion` form field |
 | To change the version | rebuild and redeploy the image | rerun this section |
-| `POST /v1/pieces` | not used | Community Edition only |
+| `POST /v1/pieces` | not used | exists on every edition; tested on CE only |
 
-Cloud lane — you are building the image from the prefixed-path branch: there is nothing to install, and
-the two mechanisms behind that column are §3. Enterprise: neither column applies, because the upload
-endpoint is CE-only (§3); an EE customer needs the image. Customer lane — a stock CE instance, whether a
-testbed or an on-premise customer: the rest of this section.
+Cloud lane - you are building the image from the prefixed-path branch: there is nothing to install, and
+the two mechanisms behind that column are §3. Enterprise: the upload endpoint exists there too, but an
+`ARCHIVE` install on EE/Cloud is untested (§3); this section describes the proven CE path. Customer
+lane - a stock CE instance, whether a testbed or an on-premise customer: the rest of this section.
 
 **The Oro bundle does not upload the piece** (§3): the setup command pins the version but never installs.
 This section is that separate step.

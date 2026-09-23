@@ -36,8 +36,7 @@ path must replace.
   `app_connection`, `user`, `project` and `platform` columns before the bundle is pointed at it.
 - The key is readable by anyone with Oro DB read plus the app secret, or console access — same as any
   Oro-stored credential; nothing extra.
-- Two follow-ups on the provisioning command are open and tracked internally with the integration ticket:
-  making it safe to re-run, and handling the credentials it emits. Owner unassigned.
+- Follow-ups on the provisioning command are tracked internally with the integration ticket.
 - On EE, an API-key endpoint exists; whether the bundle should use it there instead of the DB write is
   part of the open provisioning decision.
 - Three of the five direct writes are avoidable even on CE (findings of 21 Aug 2026): CE exposes
