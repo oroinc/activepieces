@@ -1,6 +1,6 @@
-# 1. Distribute the OroCommerce piece as an uploaded archive, not via the npm registry
+# 1. Distribute the piece as an uploaded archive
 
-Date: 2026-09-07 (decision taken 2026-08-19, confirmed 2026-09-01 and 2026-09-07)
+Date: 2026-09-07
 Status: accepted
 Evidence: the tracking ticket comments of 19 Aug, 20 Aug, 1 Sep 2026; an internal run log, 7 Sep 2026
 
@@ -14,7 +14,7 @@ On Community Edition (the edition stock images and our customers run), installs 
 `communityPiecesModule`. Its `REGISTRY` path resolves the download URL by looking the package up in
 `piece_metadata` — the same table the install is meant to populate. For a package the instance has never
 seen this is a closed loop: no row → 404 before npm is contacted; create the row by hand → 409 duplicate.
-Tested 1 Sep 2026 on stock CE 0.88.1 with `piece-slack@0.5.0` (on npm, no metadata row) and with a test
+Tested on stock CE 0.88.1 with `piece-slack@0.5.0` (on npm, no metadata row) and with a test
 package at two versions in both orders. Official catalog pieces are unaffected because the catalog is seeded
 into `piece_metadata` at boot; `piece-slack@0.17.9` installed fine from the registry.
 

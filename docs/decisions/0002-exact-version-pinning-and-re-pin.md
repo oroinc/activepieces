@@ -1,6 +1,6 @@
-# 2. Flows pin the exact piece version; every upgrade is an explicit per-flow re-pin
+# 2. Re-pin every flow explicitly on each piece version change
 
-Date: 2026-09-07 (behaviour established 3 Sep 2026, confirmed 7 Sep 2026)
+Date: 2026-09-07
 Status: accepted
 Evidence: upgrade rehearsal 3 Sep 2026 (internal upgrade-rehearsal results); an internal run log, 7 Sep 2026
 
@@ -20,15 +20,10 @@ a new one with a new secret.
 
 ## Decision
 
-Treat every piece version bump as a per-flow operation, done through the API, not the UI:
-
-1. `POST /v1/flows/{id}` with `UPDATE_TRIGGER` — send the whole trigger object, changing only
-   `settings.pieceVersion`.
-2. `POST /v1/flows/{id}` with `LOCK_AND_PUBLISH`.
+Treat every piece version bump as a per-flow operation, done through the API, not the UI - the UI upgrade
+resets the connection and topic inputs. The calls are in [`FORK-UPDATE.md` §6](../FORK-UPDATE.md).
 
 Then verify in Oro that the flow's URL has exactly one webhook row and `length(secret) = 108`.
-
-The UI "upgrade" path is not used: it resets the connection and topic inputs.
 
 ## Consequences
 

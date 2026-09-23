@@ -1,4 +1,4 @@
-# 7. The piece's package name
+# 7. Choose the piece's package name
 
 Date: 2026-09-07
 Status: proposed

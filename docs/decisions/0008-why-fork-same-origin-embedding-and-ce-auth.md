@@ -1,7 +1,6 @@
-# 8. Why Oro maintains a fork of Activepieces: same-origin path-prefix embedding and Community-Edition embed auth
+# 8. Fork Activepieces for same-origin embedding on CE
 
-Date: 2026-09-07 (decision in place since fork PR #1, 10 Aug 2026; topology decided on the internal
-deployment page, v3 26 Jun 2026)
+Date: 2026-09-07
 Status: accepted
 Evidence: internal analysis of the fork's patches and of the embedding and provisioning behaviour, held
 with the integration ticket; the internal deployment page;
@@ -11,7 +10,8 @@ with the integration ticket; the internal deployment page;
 
 The OroCommerce piece does not need a fork: it is a self-contained package that installs on a stock image
 (ADR 1). The fork exists for one reason — embedding the Activepieces builder inside the Oro back-office —
-and that runs into two limits at once.
+and that runs into two limits at once. The decision has been in place since fork PR #1; the topology was
+set by the internal deployment page (v3).
 
 **Activepieces' own embedding is enterprise-only.** Upstream's `/embed` route, the embed SDK hand-off and
 the endpoint that turns an external token into an AP session (`managed-authn`) are registered only in the
@@ -63,12 +63,12 @@ SPA fallback in `server.ts`.
 - **The fork is a maintenance liability by construction.** It must be re-synced with upstream on every
   release (ADR 6), the image branch must be kept in step with the piece branch (ADR 4 — found 141 commits
   behind on 7 Sep 2026), and every upstream change to the web app's URL handling is a potential conflict.
-- **The server-side patch is eliminable; the frontend patches are not.** The 20 Aug audit found that if
+- **The server-side patch is eliminable; the frontend patches are not.** An audit found that if
   a reverse proxy served a CI-built static `dist/` with the absolute prefix baked in and reproduced five
   behaviours of the stock server (SPA fallback, cache headers, `<base href>`, prefix-stripping proxy for
   `/api` and websockets, CSP), the stock image could serve `/api/*` unchanged and `Dockerfile.oro`,
   `server.ts` and the entrypoint patch would go away. The eleven frontend files still need patching at
-  build time. This "no-custom-image" architecture is **parked** (2 Sep 2026); it would also have to solve
+  build time. This "no-custom-image" architecture is **parked**; it would also have to solve
   how the OroCommerce piece reaches a stock image (ADR 1 answers that for CE).
 - **The auth half cannot be removed on CE.** The hand-off could move from shared storage to the embed
   SDK's postMessage — the transport exists in CE and the fork's route already listens for it — but that

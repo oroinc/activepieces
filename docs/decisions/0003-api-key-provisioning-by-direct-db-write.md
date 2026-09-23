@@ -1,4 +1,4 @@
-# 3. On Community Edition the platform API key is created by writing the `api_key` row directly
+# 3. Create the CE platform API key by direct database write
 
 Date: 2026-09-07
 Status: accepted
@@ -13,10 +13,9 @@ lookup code is shared by all editions and has no edition guard. But Community Ed
 endpoint to *create* an API key — that route set lives in the enterprise module only. A key whose hash is
 not in the table is rejected (401), so the key cannot simply be "forged".
 
-The Oro setup command therefore writes the row itself through Doctrine:
-`id` (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`, `hashedValue` (hex
-SHA-256 of the full key), `truncatedValue` (last 4), `lastUsedAt` (NULL). Key format: `sk-` + 61 NanoId
-characters (`A-Za-z0-9`), 64 characters total. Oro keeps the key encrypted in system config
+The Oro setup command therefore writes the row itself through Doctrine: a row in `api_key` holding the
+hex SHA-256 of the full key (the exact column list and key format are in
+[`FORK-UPDATE.md` §5, Preconditions](../FORK-UPDATE.md)). Oro keeps the key encrypted in system config
 (`oro_activepieces_integration.api_key`, AES-256-CBC keyed by `kernel.secret`). Reproduced by hand on a
 clean CE 0.88.1 on 7 Sep 2026: the inserted key authenticated; a control key not in the table did not.
 
@@ -39,7 +38,7 @@ path must replace.
 - A proper provisioning path remains an open decision (owner and date not set).
 - On EE, an API-key endpoint exists; whether the bundle should use it there instead of the DB write is
   part of the open provisioning decision.
-- Three of the five direct writes are avoidable even on CE (findings of 21 Aug 2026): CE exposes
+- Three of the five direct writes are avoidable even on CE: CE exposes
   `POST /v1/projects`, `POST /v1/app-connections` (upsert) and `POST /v1/authentication/sign-up` — the last
   being the only way to create a user on CE. Only the API key has no endpoint. The catch is bootstrap: a
   machine caller would normally authenticate those calls with an API key, which CE cannot mint, so a

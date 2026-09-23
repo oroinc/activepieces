@@ -11,16 +11,16 @@ all; everything else follows from it.
 
 | # | Decision | Status |
 | --- | --- | --- |
-| [8](0008-why-fork-same-origin-embedding-and-ce-auth.md) | Why Oro maintains a fork: same-origin path-prefix embedding and CE embed auth | accepted |
-| [1](0001-distribute-piece-as-archive-not-registry.md) | Distribute the piece as an uploaded archive, not via the npm registry | accepted |
-| [2](0002-exact-version-pinning-and-re-pin.md) | Flows pin the exact piece version; every upgrade is an explicit per-flow re-pin | accepted |
-| [3](0003-api-key-provisioning-by-direct-db-write.md) | On CE the platform API key is created by writing the `api_key` row directly | accepted - a proper provisioning path is still open |
-| [4](0004-two-branch-policy.md) | Two branches: piece code vs embedding/image | accepted |
-| [5](0005-version-bump-rule-and-release-identity.md) | Bump only when installed outside a rig; release = commit + two hashes | superseded by [10](0010-piece-versioning-1-0-0-and-semver.md) |
-| [6](0006-upstream-sync-via-origin-main-or-tags.md) | Phased upstream sync: `origin/main` during development, a release tag at release | accepted |
-| [7](0007-piece-package-name.md) | The piece's package name | proposed - the piece maintainer decides ([11](0011-piece-ownership.md)); more urgent since 10 |
+| [8](0008-why-fork-same-origin-embedding-and-ce-auth.md) | Fork Activepieces for same-origin embedding on CE | accepted |
+| [1](0001-distribute-piece-as-archive-not-registry.md) | Distribute the piece as an uploaded archive | accepted |
+| [2](0002-exact-version-pinning-and-re-pin.md) | Re-pin every flow explicitly on each piece version change | accepted |
+| [3](0003-api-key-provisioning-by-direct-db-write.md) | Create the CE platform API key by direct database write | accepted - a proper provisioning path is still open |
+| [4](0004-two-branch-policy.md) | Keep piece code and embedding on separate branches | accepted |
+| [5](0005-version-bump-rule-and-release-identity.md) | Bump the version only after a non-rig install | superseded by [10](0010-piece-versioning-1-0-0-and-semver.md) |
+| [6](0006-upstream-sync-via-origin-main-or-tags.md) | Sync upstream by project stage | accepted |
+| [7](0007-piece-package-name.md) | Choose the piece's package name | proposed - the piece maintainer decides ([11](0011-piece-ownership.md)); more urgent since 10 |
 | 9 | not published in this repository | - |
-| [10](0010-piece-versioning-1-0-0-and-semver.md) | 1.0.0 is the first customer release; semver from there | accepted |
+| [10](0010-piece-versioning-1-0-0-and-semver.md) | Version the piece with semver from 1.0.0 | accepted |
 | [11](0011-piece-ownership.md) | Give the piece maintainer ownership of the piece | accepted |
 
 Format: Nygard-style Context / Decision / Consequences per the

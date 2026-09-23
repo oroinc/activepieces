@@ -1,8 +1,9 @@
-# 4. Two branches: piece code on `poc/orocommerce`, embedding and image on `poc/orocommerce_prefixed-path-install`
+# 4. Keep piece code and embedding on separate branches
 
-Date: 2026-09-07 (policy stated 27 Aug 2026 by the fork owner and 3 Sep 2026 by the piece maintainer, Slack)
+Date: 2026-09-07
 Status: accepted
-Evidence: Slack 27 Aug, 3 Sep 2026; `FORK-UPDATE.md` §1; an internal run log, 7 Sep 2026
+Evidence: Slack, 27 Aug and 3 Sep 2026 (the policy as stated by the fork owner and the piece maintainer);
+`FORK-UPDATE.md` §1; an internal run log, 7 Sep 2026
 
 ## Context
 

@@ -1,4 +1,4 @@
-# 10. The piece is versioned for its consumers: 1.0.0 is the first customer release, semver from there
+# 10. Version the piece with semver from 1.0.0
 
 Date: 2026-09-08
 Status: accepted

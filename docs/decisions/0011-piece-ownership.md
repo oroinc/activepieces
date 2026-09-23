@@ -8,8 +8,8 @@ Affects: [4](0004-two-branch-policy.md), [7](0007-piece-package-name.md), [10](0
 ## Context
 
 Until now the fork owner held every decision about the fork, the piece included. Records 7 and 10 left
-two piece-level questions with no named decider: record 7 (the package name) has been open since
-7 Sep 2026 waiting on an answer, and record 10 set the versioning rule without saying who applies it.
+two piece-level questions with no named decider: record 7 (the package name) has been open since it was
+written, waiting on an answer, and record 10 set the versioning rule without saying who applies it.
 The fork owner has handed these to the person who maintains the piece.
 
 ## Decision

@@ -1,4 +1,4 @@
-# 5. Bump the piece version only when the current version has been installed outside a rig; a release is commit + two hashes
+# 5. Bump the version only after a non-rig install
 
 Date: 2026-09-07
 Status: superseded by [10](0010-piece-versioning-1-0-0-and-semver.md)
