@@ -16,8 +16,9 @@ all; everything else follows from it.
 | [4](0004-two-branch-policy.md) | Two branches: piece code vs embedding/image | accepted |
 | [5](0005-version-bump-rule-and-release-identity.md) | Bump only when installed outside a rig; release = commit + two hashes | **superseded by [10](0010-piece-versioning-1-0-0-and-semver.md)** |
 | [6](0006-upstream-sync-via-origin-main-or-tags.md) | Phased upstream sync: `origin/main` during development, a release tag at release | accepted |
-| [7](0007-piece-package-name.md) | The piece's package name | **open** — more urgent since 10 |
+| [7](0007-piece-package-name.md) | The piece's package name | **open** - the piece maintainer decides ([11](0011-piece-ownership.md)); more urgent since 10 |
 | [10](0010-piece-versioning-1-0-0-and-semver.md) | 1.0.0 is the first customer release; semver from there | accepted |
+| [11](0011-piece-ownership.md) | Give the piece maintainer ownership of the piece | accepted |
 
 Format: context → decision → consequences, with date, status and evidence at the top
 (a light version of [MADR](https://adr.github.io/madr/)). Related procedure: [`../FORK-UPDATE.md`](../FORK-UPDATE.md).

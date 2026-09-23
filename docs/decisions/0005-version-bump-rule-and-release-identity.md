@@ -1,7 +1,7 @@
 # 5. Bump the piece version only when the current version has been installed outside a rig; a release is commit + two hashes
 
 Date: 2026-09-07
-Status: accepted
+Status: superseded by [10](0010-piece-versioning-1-0-0-and-semver.md)
 Evidence: PR #7 (0.3.1 bump) closed 7 Sep 2026; an internal run log, 7 Sep 2026
 
 ## Context
