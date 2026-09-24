@@ -60,3 +60,10 @@ applied to the archive path we depend on.
   one curl on every Activepieces version bump.
 - If upstream ever fixes registry resolution for unknown packages, images already deployed still carry
   the old resolver, so the archive path stays the baseline regardless.
+
+**Addendum, 24 Sep 2026.** Record 12 (proposed) makes the Oro image the only way the integration is
+deployed. If it is accepted, the archive stays the release artifact and the way to test the piece on a
+stock instance, but uploading it is no longer a deployment step: the "customer lane" consequences above
+then describe a test path, and the vendor risk to the CE upload endpoint affects testing, not deployments.
+The upstream pull request named in the Context (#13859) was closed by upstream on 16 Jul 2026 without
+review.

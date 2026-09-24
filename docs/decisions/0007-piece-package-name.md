@@ -32,7 +32,7 @@ Three pressures pull in different directions:
 
 ## Decision
 
-Not taken. The piece maintainer decides it ([11](0011-piece-ownership.md)), and the decision is needed
+Not taken. The front-end team decides it ([11](0011-piece-ownership.md)), and the decision is needed
 before upstream PR #13859 moves or anything is published to npm. Sits on the tracking ticket with the
 release record; must precede the first install on any instance that will keep its flows (an internal
 deployment included).

@@ -18,10 +18,11 @@ all; everything else follows from it.
 | [4](0004-two-branch-policy.md) | Keep piece code and embedding on separate branches | accepted |
 | [5](0005-version-bump-rule-and-release-identity.md) | Bump the version only after a non-rig install | superseded by [10](0010-piece-versioning-1-0-0-and-semver.md) |
 | [6](0006-upstream-sync-via-origin-main-or-tags.md) | Sync upstream by project stage | accepted |
-| [7](0007-piece-package-name.md) | Choose the piece's package name | proposed - the piece maintainer decides ([11](0011-piece-ownership.md)); more urgent since 10 |
+| [7](0007-piece-package-name.md) | Choose the piece's package name | proposed - the front-end team decides ([11](0011-piece-ownership.md)); more urgent since 10 |
 | 9 | not published in this repository | - |
 | [10](0010-piece-versioning-1-0-0-and-semver.md) | Version the piece with semver from 1.0.0 | accepted |
-| [11](0011-piece-ownership.md) | Give the piece maintainer ownership of the piece | accepted |
+| [11](0011-piece-ownership.md) | Give the front-end team ownership of the piece | accepted |
+| [12](0012-every-deployment-runs-the-oro-image.md) | Run every deployment on the Oro image | proposed |
 
 Format: Nygard-style Context / Decision / Consequences per the
 [architecture-decision-record guide](https://github.com/architecture-decision-record/architecture-decision-record),
@@ -37,18 +38,19 @@ internal tracker.
 
 ## Glossary
 
-- **CE / EE** - Activepieces Community Edition (the edition stock images and our customers run) and
+- **CE / EE** - Activepieces Community Edition (what stock images and the Oro image are built from) and
   Enterprise Edition.
 - **rig** - a developer's local test instance of the integration; flows built on one are disposable.
-- **cloud lane** - the piece ships baked into the Oro image as an in-memory dev piece, built from the
-  image branch.
-- **customer lane** - the piece's `.tgz` is uploaded to a stock CE instance with `POST /v1/pieces`.
+- **Oro image** - the Activepieces image built from the image branch, with the piece built in as an
+  in-memory dev piece; every deployment runs it (record 12).
+- **archive install** - uploading the piece's `.tgz` to a stock CE instance with `POST /v1/pieces`; a
+  test path, not a deployment (record 12).
 - **piece branch** - `poc/orocommerce`: piece code only (record 4).
 - **image branch** - `poc/orocommerce_prefixed-path-install`: embedding and image changes on top of
-  everything on the piece branch; the Oro cloud image is built from it (record 4).
+  everything on the piece branch; the Oro image is built from it (record 4).
 - **companion bundle** - the Oro-side bundle that provisions the integration (AP user, project,
   connection, platform API key) and pins the default piece version.
 - **fork owner** - the role that owns the fork: the image branch and its embedding patches, upstream
   syncs, and merges into the image branch (record 11).
-- **piece maintainer** - the role that owns everything under `packages/pieces/community/orocommerce/`:
-  the package name, the version, code quality and review of piece changes (record 11).
+- **front-end team** - owns everything under `packages/pieces/community/orocommerce/`: the package
+  name, the version, code quality and review of piece changes (record 11).

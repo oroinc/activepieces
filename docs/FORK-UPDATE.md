@@ -14,7 +14,8 @@ Why things are the way they are: see [docs/decisions](decisions/README.md).
 | `poc/orocommerce` | The piece only: `packages/pieces/community/orocommerce/` | Piece changes land here and only here |
 | `poc/orocommerce_prefixed-path-install` | Everything above **plus** the embedding patches and `Dockerfile.oro` | Embedding changes land here and only here; it must always contain all of `poc/orocommerce` |
 
-Upstream is `activepieces/activepieces`. Our piece is also proposed upstream as PR #13859.
+Upstream is `activepieces/activepieces`. Our piece was proposed upstream as PR #13859, which upstream
+closed on 16 Jul 2026 without review.
 
 Check the second rule before every release:
 
@@ -23,7 +24,7 @@ git fetch origin
 git log origin/poc/orocommerce ^origin/poc/orocommerce_prefixed-path-install --oneline
 ```
 
-Empty output is the only acceptable result. Anything listed is piece code the cloud image does not have.
+Empty output is the only acceptable result. Anything listed is piece code the Oro image does not have.
 (On 7 Sep this check listed 141 commits; the image branch had not moved since 10 Aug. 19 of them touched
 `packages/pieces/community/orocommerce/` — PRs #4, #5 and #6 and the 0.3.0 bump — and the other 122 were
 the upstream sync those were built on top of, which carried the version string from 0.87.0 to 0.88.1. An
@@ -54,9 +55,12 @@ under the old number.
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
 flow built with the old name. Do not rename without a decision on the tracking ticket.
 
-## 3. Two ways the piece reaches an instance
+## 3. How the piece reaches an instance
 
-**Cloud lane (our image).** Two separate mechanisms, on the prefixed-path branch, often confused:
+Every deployment runs the Oro image ([record 12](decisions/0012-every-deployment-runs-the-oro-image.md));
+the archive upload exists for testing on stock instances.
+
+**The Oro image.** Two separate mechanisms, on the prefixed-path branch, often confused:
 
 - `Dockerfile.oro` **bakes the piece in as a workspace package**. Its builder stage compiles the piece
   along with the app (`npx turbo run build --filter=… --filter=@activepieces/piece-orocommerce`), and the
@@ -68,13 +72,13 @@ flow built with the old name. Do not rename without a decision on the tracking t
   says. The same file sets `AP_PIECES_SOURCE=CLOUD_AND_DB` and `AP_PIECES_SYNC_MODE=OFFICIAL_AUTO`.
 
 So the image only carries the piece because of the Dockerfile, and only serves it as a dev piece because
-of the env file; changing either one changes the cloud lane. Changing the piece means rebuilding the image.
+of the env file; changing either one changes the Oro image. Changing the piece means rebuilding the image.
 
-**Customer lane (stock Community Edition image).** The `.tgz` is uploaded to the instance with
+**Archive install on a stock instance (testing).** The `.tgz` is uploaded to the instance with
 `POST /v1/pieces` as a `CUSTOM` / `ARCHIVE` piece. **Nothing in the Oro bundle does this.**
 `oro:integration:activepieces:setup` provisions the Oro API user, OAuth application, AP user/project/
-connection and the platform API key, and pins the piece version — it never installs the piece. The upload is
-a separate step that the deployment runbook has to carry (§5).
+connection and the platform API key, and pins the piece version - it never installs the piece. On a stock
+instance the upload is a separate step (§5).
 
 **The upload endpoint exists on every edition.** CE registers it through `communityPiecesModule`,
 Enterprise and Cloud through `platformPieceModule` - the same `POST /v1/pieces`, platform admin only,
@@ -149,19 +153,18 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 5. Open a PR into `poc/orocommerce`; merge.
 6. Merge `poc/orocommerce` into `poc/orocommerce_prefixed-path-install` (a PR, not a direct push — the
    embedding branch has its own owner). Re-run the §1 check; it must be empty.
-7. Cloud lane: rebuild the image from the prefixed-path branch and deploy it. Customer lane: run §5 on each
-   instance.
+7. Rebuild the image from the prefixed-path branch and deploy it. On stock test instances, run §5.
 8. Re-pin every flow (§6).
 9. Update the Oro companion default (`activepieces_orocommerce_default_piece_version` in the bundle's
    `services.yml`, and its README line) and the internal deployment page's "piece default".
 
-## 5. Installing the tarball on a stock CE instance (customer lane)
+## 5. Installing the tarball on a stock CE instance (testing)
 
 ### Which path applies
 
 Sort yourself before reading anything else:
 
-| | Cloud lane (our image) | Customer lane (stock CE) |
+| | Oro image (every deployment) | Stock CE (testing) |
 | --- | --- | --- |
 | How the piece gets in | baked into the image as a workspace package by `Dockerfile.oro` | uploaded as a `.tgz` via `POST /v1/pieces` |
 | Served as | in-memory dev piece, no database row | `CUSTOM` / `ARCHIVE` piece, row in `piece_metadata` |
@@ -169,10 +172,10 @@ Sort yourself before reading anything else:
 | To change the version | rebuild and redeploy the image | rerun this section |
 | `POST /v1/pieces` | not used | exists on every edition; tested on CE only |
 
-Cloud lane - you are building the image from the prefixed-path branch: there is nothing to install, and
+Oro image - you are building the image from the prefixed-path branch: there is nothing to install, and
 the two mechanisms behind that column are §3. Enterprise: the upload endpoint exists there too, but an
-`ARCHIVE` install on EE/Cloud is untested (§3); this section describes the proven CE path. Customer
-lane - a stock CE instance, whether a testbed or an on-premise customer: the rest of this section.
+`ARCHIVE` install on EE/Cloud is untested (§3); this section describes the proven CE path. Stock CE
+instance (a rig or testbed): the rest of this section.
 
 **The Oro bundle does not upload the piece** (§3): the setup command pins the version but never installs.
 This section is that separate step.
@@ -369,12 +372,12 @@ log — so a flow that is discarding every delivery looks healthy from the outsi
 
 ## 8. If the piece merges upstream (Case 3)
 
-The cloud lane's two mechanisms (§3) both become redundant — in the same PR that takes the upstream tag
+The image's two mechanisms (§3) both become redundant - in the same PR that takes the upstream tag
 containing the piece, remove `AP_DEV_PIECES=orocommerce` from **`.env.oro.example`** (not from
 `Dockerfile.oro`, which never set it), and drop the piece's build filter and its `! -name orocommerce`
-prune exemption from `Dockerfile.oro`, so the image picks the piece up from upstream like any other. The
-customer lane then installs from the registry like any official piece and §5 is no longer needed. The
-package name must be settled before this happens (§2).
+prune exemption from `Dockerfile.oro`, so the image picks the piece up from upstream like any other.
+Stock instances could then install it from the registry like any official piece, and §5 would no longer
+be needed for testing. The package name must be settled before this happens (§2).
 
 ## 9. Do not put in this file
 
