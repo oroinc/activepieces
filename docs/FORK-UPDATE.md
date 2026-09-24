@@ -42,6 +42,11 @@ Current release: **1.0.0** = commit `feb45cdf70`, `head-feb45cd-1.0.0.tgz`,
 sha256 `ced1e853f15717b11e8c6282d619c3e0443780c7035c4ced69fbc35915a0663c`, 67 144 bytes,
 `src/index.js` `11ad8876e985a4886be58645474ff5a442eefe4317611ae33feed922faef6cff`.
 
+Each release is published as a GitHub Release of this repository, tagged `piece-orocommerce-<version>` on
+the release commit, with the renamed `.tgz` attached and both hashes in the release notes, so anyone can
+download it. The tag names a piece release only; it says nothing about the Activepieces version of the
+branch.
+
 Version rule: from 1.0.0 the piece follows semantic versioning, judged from the consumer's side — major
 for a change that breaks an existing flow, minor for new actions, triggers or optional properties, patch
 for fixes that leave the contract intact ([record 10](decisions/0010-piece-versioning-1-0-0-and-semver.md)).
@@ -54,11 +59,12 @@ under the old number.
 
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
 flow built with the old name. Do not rename without a decision on the tracking ticket.
+[Record 7](decisions/0007-piece-package-name.md) keeps the current name.
 
 ## 3. How the piece reaches an instance
 
-Every deployment runs the Oro image ([record 12](decisions/0012-every-deployment-runs-the-oro-image.md));
-the archive upload exists for testing on stock instances.
+Every deployment of the integration runs the Oro image; the piece alone reaches stock instances as the
+archive ([record 12](decisions/0012-every-deployment-runs-the-oro-image.md)).
 
 **The Oro image.** Two separate mechanisms, on the prefixed-path branch, often confused:
 
@@ -74,7 +80,7 @@ the archive upload exists for testing on stock instances.
 So the image only carries the piece because of the Dockerfile, and only serves it as a dev piece because
 of the env file; changing either one changes the Oro image. Changing the piece means rebuilding the image.
 
-**Archive install on a stock instance (testing).** The `.tgz` is uploaded to the instance with
+**Archive install on a stock instance (the piece alone).** The `.tgz` is uploaded to the instance with
 `POST /v1/pieces` as a `CUSTOM` / `ARCHIVE` piece. **Nothing in the Oro bundle does this.**
 `oro:integration:activepieces:setup` provisions the Oro API user, OAuth application, AP user/project/
 connection and the platform API key, and pins the piece version - it never installs the piece. On a stock
@@ -147,24 +153,26 @@ piece must be re-pinned (§6); nothing upgrades automatically.
 
    If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
    not code — record both hashes and say so.
-4. Record commit + both hashes on the tracking ticket and attach the `.tgz`. `npm pack` names it
-   `activepieces-piece-orocommerce-<version>.tgz` (from the package name and version, not from the
-   commit); rename it `head-<short-sha>-<version>.tgz` so the artifact identifies the commit it came from.
+4. Record commit + both hashes on the tracking ticket and attach the `.tgz` and publish it as a GitHub
+   Release (§2). `npm pack` names it `activepieces-piece-orocommerce-<version>.tgz` (from the package name
+   and version, not from the commit); rename it `head-<short-sha>-<version>.tgz` so the artifact
+   identifies the commit it came from.
 5. Open a PR into `poc/orocommerce`; merge.
 6. Merge `poc/orocommerce` into `poc/orocommerce_prefixed-path-install` (a PR, not a direct push — the
    embedding branch has its own owner). Re-run the §1 check; it must be empty.
-7. Rebuild the image from the prefixed-path branch and deploy it. On stock test instances, run §5.
+7. Rebuild the image from the prefixed-path branch and deploy it. Stock instances install the published
+   `.tgz` with §5.
 8. Re-pin every flow (§6).
 9. Update the Oro companion default (`activepieces_orocommerce_default_piece_version` in the bundle's
    `services.yml`, and its README line) and the internal deployment page's "piece default".
 
-## 5. Installing the tarball on a stock CE instance (testing)
+## 5. Installing the tarball on a stock CE instance (the piece alone)
 
 ### Which path applies
 
 Sort yourself before reading anything else:
 
-| | Oro image (every deployment) | Stock CE (testing) |
+| | Oro image (the integration) | Stock CE (the piece alone) |
 | --- | --- | --- |
 | How the piece gets in | baked into the image as a workspace package by `Dockerfile.oro` | uploaded as a `.tgz` via `POST /v1/pieces` |
 | Served as | in-memory dev piece, no database row | `CUSTOM` / `ARCHIVE` piece, row in `piece_metadata` |
@@ -175,7 +183,7 @@ Sort yourself before reading anything else:
 Oro image - you are building the image from the prefixed-path branch: there is nothing to install, and
 the two mechanisms behind that column are §3. Enterprise: the upload endpoint exists there too, but an
 `ARCHIVE` install on EE/Cloud is untested (§3); this section describes the proven CE path. Stock CE
-instance (a rig or testbed): the rest of this section.
+instance (any stock instance, including a rig): the rest of this section.
 
 **The Oro bundle does not upload the piece** (§3): the setup command pins the version but never installs.
 This section is that separate step.
@@ -191,8 +199,9 @@ In order — each one cost hours when skipped.
    registers in Oro.
 3. **A platform API key (`sk-…`) exists.** On CE there is **no API endpoint** to create one —
    `authenticate.ts` accepts `sk-` keys via `apiKeyService` with no edition guard, but CE registers no
-   `api-keys` routes. The only way to mint one is a row in `api_key`, which is exactly what the Oro setup
-   command writes: `id` (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`,
+   `api-keys` routes. The only way to mint one is a row in `api_key`, which is what the Oro setup command
+   writes for the integration; for the piece alone on a stock instance you write it yourself: `id`
+   (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`,
    `hashedValue` = hex SHA-256 of the full key, `truncatedValue` = last 4, `lastUsedAt` NULL. Key format:
    `sk-` + 61 NanoId chars (`A-Za-z0-9`), 64 total. A key whose hash is not in the table gets 401 — and so
    does a key whose insert has not been committed, with no useful error either way. Commit before calling.
@@ -377,7 +386,7 @@ containing the piece, remove `AP_DEV_PIECES=orocommerce` from **`.env.oro.exampl
 `Dockerfile.oro`, which never set it), and drop the piece's build filter and its `! -name orocommerce`
 prune exemption from `Dockerfile.oro`, so the image picks the piece up from upstream like any other.
 Stock instances could then install it from the registry like any official piece, and §5 would no longer
-be needed for testing. The package name must be settled before this happens (§2).
+be needed. The package name must be settled before this happens (§2).
 
 ## 9. Do not put in this file
 

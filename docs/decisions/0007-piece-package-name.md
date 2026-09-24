@@ -1,9 +1,9 @@
 # 7. Choose the piece's package name
 
 Date: 2026-09-07
-Status: proposed
+Status: accepted
 Evidence: the tracking ticket description and comments of 19 Aug 2026; upstream PR
-activepieces/activepieces#13859
+activepieces/activepieces#13859; the front-end team and the fork owner, 24 Sep 2026
 
 ## Context
 
@@ -33,13 +33,14 @@ Three pressures pull in different directions:
 
 ## Decision
 
-Not taken. The front-end team decides it ([11](0011-piece-ownership.md)), and the decision is needed
-before anything is published to npm. Sits on the tracking ticket with the
-release record; must precede the first install on any instance that will keep its flows (an internal
-deployment included).
+Keep `@activepieces/piece-orocommerce` (option 1, without the upstream step). The piece is not published
+to npm (record 12), so no npm scope is needed, and a rename would orphan every flow already built.
+Decided by the front-end team with the fork owner ([11](0011-piece-ownership.md)). Re-open only if the
+piece is ever published to npm, or upstream reopens #13859 and asks for changes.
 
-## Consequences (of leaving it open)
+## Consequences
 
-- Every flow built on a rig today is disposable; that is fine for rigs and not fine for anything else.
-- Publishing to npm is blocked regardless of the registry-install question (see ADR 1).
-- `FORK-UPDATE.md` §2 carries the rename warning so nobody does it casually.
+- The name in every published `.tgz` and in every flow stays `@activepieces/piece-orocommerce`.
+- The name sits in a scope the project does not own. That is harmless while nothing is published to npm;
+  if the piece is ever published there, this record has to be superseded first.
+- `FORK-UPDATE.md` §2 keeps the rename warning.

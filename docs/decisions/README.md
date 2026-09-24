@@ -18,11 +18,11 @@ all; everything else follows from it.
 | [4](0004-two-branch-policy.md) | Keep piece code and embedding on separate branches | accepted |
 | [5](0005-version-bump-rule-and-release-identity.md) | Bump the version only after a non-rig install | superseded by [10](0010-piece-versioning-1-0-0-and-semver.md) |
 | [6](0006-upstream-sync-via-origin-main-or-tags.md) | Sync upstream by project stage | accepted |
-| [7](0007-piece-package-name.md) | Choose the piece's package name | proposed - the front-end team decides ([11](0011-piece-ownership.md)); more urgent since 10 |
+| [7](0007-piece-package-name.md) | Choose the piece's package name | accepted - keep the current name |
 | 9 | not published in this repository | - |
 | [10](0010-piece-versioning-1-0-0-and-semver.md) | Version the piece with semver from 1.0.0 | accepted |
 | [11](0011-piece-ownership.md) | Give the front-end team ownership of the piece | accepted |
-| [12](0012-every-deployment-runs-the-oro-image.md) | Run every deployment on the Oro image | proposed |
+| [12](0012-every-deployment-runs-the-oro-image.md) | Run the integration on the Oro image; ship the piece alone as an archive | accepted |
 
 Format: Nygard-style Context / Decision / Consequences per the
 [architecture-decision-record guide](https://github.com/architecture-decision-record/architecture-decision-record),
@@ -42,9 +42,9 @@ internal tracker.
   Enterprise Edition.
 - **rig** - a developer's local test instance of the integration; flows built on one are disposable.
 - **Oro image** - the Activepieces image built from the image branch, with the piece built in as an
-  in-memory dev piece; every deployment runs it (record 12).
-- **archive install** - uploading the piece's `.tgz` to a stock CE instance with `POST /v1/pieces`; a
-  test path, not a deployment (record 12).
+  in-memory dev piece; the integration runs only on it (record 12).
+- **archive install** - uploading the piece's `.tgz` to a stock CE instance with `POST /v1/pieces`; how
+  the piece alone reaches stock instances (record 12).
 - **piece branch** - `poc/orocommerce`: piece code only (record 4).
 - **image branch** - `poc/orocommerce_prefixed-path-install`: embedding and image changes on top of
   everything on the piece branch; the Oro image is built from it (record 4).

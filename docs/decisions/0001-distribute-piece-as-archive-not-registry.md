@@ -67,3 +67,8 @@ stock instance, but uploading it is no longer a deployment step: the "customer l
 then describe a test path, and the vendor risk to the CE upload endpoint affects testing, not deployments.
 The upstream pull request named in the Context (#13859) was closed by upstream on 16 Jul 2026 without
 review.
+
+**Addendum, 24 Sep 2026 (2).** Record 12 was accepted in a changed form: the archive is not only a test
+path. It is how the piece alone is shipped to stock Activepieces, so the install consequences above apply
+to anyone installing it. The first addendum's "no longer a deployment step" holds only for deployments of
+the integration, which run the Oro image.
