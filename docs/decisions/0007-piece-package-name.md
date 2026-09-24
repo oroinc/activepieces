@@ -15,10 +15,11 @@ piece — flows built with the old name keep pointing at the old one and do not 
 Three pressures pull in different directions:
 
 - If upstream accepts #13859, the name must be `@activepieces/piece-orocommerce`, and anything already
-  built under that name carries over.
+  built under that name carries over. Upstream closed #13859 on 16 Jul 2026 without review, saying
+  outside pull requests are paused, so this pressure is gone for now.
 - If upstream does not accept it, we do not own the `@activepieces` npm scope and cannot publish under
   it; publishing would need an Oro scope (e.g. `@oroinc/…`), which is a rename.
-- Until something is published, the name only matters *within an instance*, so the archive lane works
+- Until something is published, the name only matters *within an instance*, so the piece works
   under either name today — but the day a rename happens, every existing flow is orphaned and must be
   rebuilt or migrated.
 
@@ -33,7 +34,7 @@ Three pressures pull in different directions:
 ## Decision
 
 Not taken. The front-end team decides it ([11](0011-piece-ownership.md)), and the decision is needed
-before upstream PR #13859 moves or anything is published to npm. Sits on the tracking ticket with the
+before anything is published to npm. Sits on the tracking ticket with the
 release record; must precede the first install on any instance that will keep its flows (an internal
 deployment included).
 
