@@ -12,6 +12,10 @@ two piece-level questions with no named decider: record 7 (the package name) has
 written, waiting on an answer, and record 10 set the versioning rule without saying who applies it.
 The fork owner has handed these to the person who maintains the piece.
 
+The fork owner's priorities for the piece are that what exists works, stays compatible with
+Activepieces, and is as simple as possible to update. Changes on the Oro side (the companion bundle's PHP
+code) are done together with the fork owner, who joins in when a piece change needs one.
+
 ## Decision
 
 The piece maintainer owns everything under `packages/pieces/community/orocommerce/`:
@@ -20,8 +24,9 @@ The piece maintainer owns everything under `packages/pieces/community/orocommerc
 - **The version.** The piece maintainer applies record 10: decides major, minor or patch for each change,
   and cuts the release (the commit, the two hashes and the attached file on the tracking ticket).
 - **Quality and structure of the TypeScript code** - layout, conventions, tests, lint and i18n checks.
-- **Review of every change to that code.** A pull request that touches the piece needs the piece
-  maintainer's approval before it merges into `poc/orocommerce`.
+- **Review of every change to that code.** Piece pull requests are cross-reviewed: the piece maintainer
+  and a second front-end developer on the piece approve each other's pull requests before they merge
+  into `poc/orocommerce`. The fork owner is not a required reviewer.
 
 Outside that folder the piece maintainer owns only the piece sections of `docs/FORK-UPDATE.md` (§2
 release, §4 piece change, §5 install, §6 re-pin) and the piece's own lines in `bun.lock` that a version
@@ -35,15 +40,13 @@ The fork owner keeps everything else: the image branch and its embedding patches
 ## Consequences
 
 - Record 4's rules are unchanged: piece pull requests still target `poc/orocommerce`, and the image branch
-  is still brought up to date by a pull request to its owner. Two things change in practice: who approves
-  piece pull requests, and who opens the sync pull request to the image branch - record 4 gives that to
-  whoever bumps the piece, which is now the piece maintainer.
+  is still brought up to date by a pull request to its owner. Two things change in practice: who reviews
+  piece pull requests (cross-review, not the fork owner), and who opens the sync pull request to the image
+  branch - record 4 gives that to whoever bumps the piece, which is now the piece maintainer.
 - Record 7 now has an owner. Its deadline is still the one it states: before the first install on any
   instance that will keep its flows.
 - An upstream sync that changes code the piece bundles (the framework packages are inlined into the piece
   at build time) can change the piece artifact without touching the piece folder. The fork owner runs the
   sync; the piece maintainer decides whether the result needs a new piece version.
-- Not decided here: who reviews a pull request the piece maintainer writes. Until that is settled, such a
-  pull request asks the fork owner for review as before.
 - Not yet enforced by the repository. Nothing in the repository settings (a `CODEOWNERS` entry for the
   piece path, branch protection) reflects this record yet; until it does, the rule holds by agreement.

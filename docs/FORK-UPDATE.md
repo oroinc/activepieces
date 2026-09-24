@@ -325,8 +325,8 @@ log — so a flow that is discarding every delivery looks healthy from the outsi
      is a judgement you make and write down, not a command you run. It is not a theoretical requirement:
      upstream `main` was broken during the week of 14 Sep 2026 and two syncs were taken from it that week
      regardless (`c932f4addd`, 14 Sep; `f3f39a6284`, 15 Sep). This is the phase the fork has been in
-     throughout — **47** merges between 29 Jan and 21 Sep 2026, all by one maintainer, all of
-     `origin/main` at an **untagged** tip.
+     throughout - every merge so far has been by the fork owner, all of `origin/main` at an **untagged**
+     tip.
    - **Release phase (unverified).** `git remote add upstream
      https://github.com/activepieces/activepieces` if absent; `git fetch upstream --tags`; the ref is the
      release tag `<x.y.z>`, with no `v` prefix — upstream publishes no `v`-prefixed tags. Upstream also

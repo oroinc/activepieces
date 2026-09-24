@@ -7,7 +7,7 @@ on upstream, 21 Sep 2026; the fork owner's decision
 
 ## Context
 
-The fork's `main` mirrors upstream. Every sync so far - 47 of them - has been by the fork owner, merging
+The fork's `main` mirrors upstream. Every sync so far has been by the fork owner, merging
 `origin/main` at whatever commit it was on - never an upstream release tag. One sync (`cd36237260`) put
 the branch at `0.86.3-rc.2-451-g71dd1758dc`: near 0.88.1 but not equal to it (83 commits present that the
 tag lacks, 4 missing that it has).
