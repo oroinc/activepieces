@@ -46,6 +46,11 @@ for a change that breaks an existing flow, minor for new actions, triggers or op
 for fixes that leave the contract intact ([record 10](decisions/0010-piece-versioning-1-0-0-and-semver.md)).
 Versions must still be plain `x.y.z` — Activepieces rejects prerelease suffixes at install.
 
+A build from a later commit is a different artifact even when nothing under the piece folder changed: the
+bundle inlines framework and core code from the rest of the repository, so an upstream sync changes it.
+Such a build gets a new version (record 10) - a patch if the contract is intact - and is never released
+under the old number.
+
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
 flow built with the old name. Do not rename without a decision on the tracking ticket.
 
@@ -111,8 +116,11 @@ piece must be re-pinned (§6); nothing upgrades automatically.
    on `feb45cdf70` (23 Sep 2026, same toolchain as above) and needs no symlink, because it runs the CLI
    from source. On the current `poc/orocommerce` tip it fails before building, on a type error in
    upstream code (`packages/core/utils/src/lib/deno.ts`) that only appears under the CLI's looser
-   TypeScript settings. Until that is fixed upstream, use the procedure below. The CLI also hides turbo's
-   output, so the tarball size check matters just as much with it.
+   TypeScript settings; the same error occurs on upstream `main` when building another piece. Until that
+   is fixed upstream, use the procedure below. The CLI also hides turbo's output, so the tarball size
+   check matters just as much with it. Upstream has no issue for the `deno.ts` type error; it is listed
+   only as a known limitation (hit via `pieces generate-translation-file`) in the feature PR
+   activepieces/activepieces#15688 (21 Sep 2026), and is not fixed.
 
    Two rules follow, and neither is optional:
 
@@ -125,9 +133,13 @@ piece must be re-pinned (§6); nothing upgrades automatically.
      (`dist/index.bundle.js`, `dist/package.json`) that the bundler never writes, so turbo treats a
      rebuild with unchanged inputs as a cache hit, skips esbuild, and leaves the `tsc` `index.js` in
      place. `npm pack` then packs that instead of the bundle: a **~1 KB** tarball with no piece code in
-     it, no warning and no error. The artifact is the only place this is visible, so confirm the `.tgz` is
-     **~67 KB** (67 144 bytes for both 0.3.0 and 1.0.0) and hash both it and `package/src/index.js`
-     against the release record in §2 on every build.
+     it, no warning and no error. The artifact is the only place this is visible, so check the `.tgz` every
+     time: the failure is a ~1 KB tarball with no code, while a real build is tens to hundreds of KB. 0.3.0
+     and 1.0.0 were 67 144 bytes; a build on 24 Sep 2026 of the piece branch at `2eb800ca59` was 125 606
+     bytes because the bundle inlines more upstream code. Compare the size with the previous release and
+     account for any large change before using the artifact. Hash both the `.tgz` and
+     `package/src/index.js`: when rebuilding a recorded release both must match §2; when cutting a new
+     release, record them as that release's identity.
 
    If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
    not code — record both hashes and say so.
