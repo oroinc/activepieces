@@ -52,3 +52,6 @@ actions and trigger properties are a contract. That is what semantic versioning 
   not look for 0.4.x–0.9.x releases; they do not exist.
 - If the piece is ever taken upstream, the upstream project sets the version and this record no longer
   governs it.
+
+**Addendum, 25 Sep 2026.** The open package-name question named above is settled: record 7 keeps the
+current name.

@@ -51,3 +51,6 @@ The fork owner keeps everything else: the image branch and its embedding patches
   sync; the front-end team decides whether the result needs a new piece version.
 - Not yet enforced by the repository. Nothing in the repository settings (a `CODEOWNERS` entry for the
   piece path, branch protection) reflects this record yet; until it does, the rule holds by agreement.
+
+**Addendum, 25 Sep 2026.** Record 7 is decided: the front-end team kept the current name, with the fork
+owner.

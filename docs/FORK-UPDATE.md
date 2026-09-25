@@ -58,8 +58,8 @@ Such a build gets a new version (record 10) - a patch if the contract is intact 
 under the old number.
 
 Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
-flow built with the old name. Do not rename without a decision on the tracking ticket.
-[Record 7](decisions/0007-piece-package-name.md) keeps the current name.
+flow built with the old name. [Record 7](decisions/0007-piece-package-name.md) keeps the current name; a
+rename needs a new decision record that supersedes it.
 
 ## 3. How the piece reaches an instance
 
@@ -205,6 +205,80 @@ In order — each one cost hours when skipped.
    `hashedValue` = hex SHA-256 of the full key, `truncatedValue` = last 4, `lastUsedAt` NULL. Key format:
    `sk-` + 61 NanoId chars (`A-Za-z0-9`), 64 total. A key whose hash is not in the table gets 401 — and so
    does a key whose insert has not been committed, with no useful error either way. Commit before calling.
+
+   Create it with this script (tested on stock CE 0.88.1, 25 Sep 2026):
+
+   ```
+   #!/bin/sh
+   # Creates a platform API key (sk-...) on a stock Activepieces CE instance, the way
+   # apiKeyService.add() does on the editions that have the endpoint (Activepieces 0.88.1).
+   # Usage: PGPASSWORD=... sh create-api-key.sh HOST PORT DATABASE USER [PLATFORM_ID]
+   # The key goes to stdout and everything else to stderr, so SK_KEY=$(sh create-api-key.sh ...) works.
+   set -eu
+   export LC_ALL=C
+
+   if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+       echo "usage: PGPASSWORD=... sh $0 HOST PORT DATABASE USER [PLATFORM_ID]" >&2
+       exit 2
+   fi
+   host=$1 port=$2 db=$3 user=$4 platform=${5:-}
+
+   q() { psql -X -q -At -v ON_ERROR_STOP=1 -h "$host" -p "$port" -d "$db" -U "$user" "$@"; }
+
+   # rand N: N random characters from [A-Za-z0-9], the alphabet of apId() and secureApId()
+   rand() {
+       out=
+       while [ "${#out}" -lt "$1" ]; do
+           out=$out$(dd if=/dev/urandom bs=256 count=1 2>/dev/null | tr -dc 'A-Za-z0-9')
+       done
+       printf '%s' "$out" | cut -c "1-$1"
+   }
+
+   sha256hex() {
+       if command -v sha256sum >/dev/null 2>&1; then printf '%s' "$1" | sha256sum
+       else printf '%s' "$1" | shasum -a 256
+       fi | cut -d ' ' -f 1
+   }
+
+   row=$(q -F ' ' -v platform="$platform" <<'SQL'
+   SELECT count(*), min(id) FROM platform WHERE :'platform' = '' OR id = :'platform';
+   SQL
+   )
+   if [ "${row%% *}" != 1 ]; then
+       if [ -z "$platform" ]; then
+           echo "error: ${row%% *} platforms found; pass the platform id as the fifth argument" >&2
+       else
+           echo "error: platform $platform not found" >&2
+       fi
+       exit 1
+   fi
+   platform=${row#* }
+
+   id=$(rand 21)
+   key=sk-$(rand 61)
+   hash=$(sha256hex "$key")
+   case $hash in
+       *[!0-9a-f]* | '') echo "error: could not hash the key (need sha256sum or shasum)" >&2; exit 1 ;;
+   esac
+
+   inserted=$(q -v id="$id" -v platform="$platform" -v hash="$hash" -v last4="${key#"${key%????}"}" <<'SQL'
+   BEGIN;
+   INSERT INTO api_key (id, created, updated, "displayName", "platformId", "hashedValue", "truncatedValue", "lastUsedAt")
+   VALUES (:'id', now(), now(), 'piece install', :'platform', :'hash', :'last4', NULL)
+   RETURNING id;
+   COMMIT;
+   SQL
+   )
+   if [ "$inserted" != "$id" ]; then
+       echo "error: the key was not saved" >&2
+       exit 1
+   fi
+
+   echo "Created API key $id on platform $platform. It is shown once, below; store it now." >&2
+   printf '%s\n' "$key"
+   ```
+
+   You need direct access to the Activepieces database; the key is shown once.
 4. **A platform exists.** On a fresh 0.88.1 instance, sign-up does **not** create one. It returns an
    `ONBOARDING` token; `POST /v1/platforms {"name": …}` with that token creates platform + project and
    rotates the token.
@@ -386,7 +460,7 @@ containing the piece, remove `AP_DEV_PIECES=orocommerce` from **`.env.oro.exampl
 `Dockerfile.oro`, which never set it), and drop the piece's build filter and its `! -name orocommerce`
 prune exemption from `Dockerfile.oro`, so the image picks the piece up from upstream like any other.
 Stock instances could then install it from the registry like any official piece, and §5 would no longer
-be needed. The package name must be settled before this happens (§2).
+be needed. The package name is settled ([record 7](decisions/0007-piece-package-name.md)).
 
 ## 9. Do not put in this file
 

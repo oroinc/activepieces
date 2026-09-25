@@ -72,3 +72,6 @@ review.
 path. It is how the piece alone is shipped to stock Activepieces, so the install consequences above apply
 to anyone installing it. The first addendum's "no longer a deployment step" holds only for deployments of
 the integration, which run the Oro image.
+
+**Addendum, 25 Sep 2026.** The package name is settled: record 7 keeps `@activepieces/piece-orocommerce`,
+and the piece is not published to npm (record 12).

@@ -44,3 +44,6 @@ piece is ever published to npm, or upstream reopens #13859 and asks for changes.
 - The name sits in a scope the project does not own. That is harmless while nothing is published to npm;
   if the piece is ever published there, this record has to be superseded first.
 - `FORK-UPDATE.md` §2 keeps the rename warning.
+
+**Addendum, 25 Sep 2026.** "A scope the project does not own" above means the `@activepieces` npm scope,
+which belongs to the Activepieces maintainers, not to Oro.
