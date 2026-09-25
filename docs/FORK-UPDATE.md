@@ -1,0 +1,475 @@
+# Updating the OroCommerce piece and the Activepieces fork
+
+How the `orocommerce` piece is built, released, installed and upgraded, and how this fork tracks upstream
+Activepieces. Written 7 Sep 2026 from a live run on stock CE 0.88.1 (the tracking ticket, run log of that date).
+Anything marked **(unverified)** has not yet been executed by following this document — the first person
+to do so should replace the mark with what happened.
+
+Why things are the way they are: see [docs/decisions](decisions/README.md).
+
+## 1. The two branches
+
+| Branch | Contains | Rule |
+| --- | --- | --- |
+| `poc/orocommerce` | The piece only: `packages/pieces/community/orocommerce/` | Piece changes land here and only here |
+| `poc/orocommerce_prefixed-path-install` | Everything above **plus** the embedding patches and `Dockerfile.oro` | Embedding changes land here and only here; it must always contain all of `poc/orocommerce` |
+
+Upstream is `activepieces/activepieces`. Our piece was proposed upstream as PR #13859, which upstream
+closed on 16 Jul 2026 without review.
+
+Check the second rule before every release:
+
+```
+git fetch origin
+git log origin/poc/orocommerce ^origin/poc/orocommerce_prefixed-path-install --oneline
+```
+
+Empty output is the only acceptable result. Anything listed is piece code the Oro image does not have.
+(On 7 Sep this check listed 141 commits; the image branch had not moved since 10 Aug. 19 of them touched
+`packages/pieces/community/orocommerce/` — PRs #4, #5 and #6 and the 0.3.0 bump — and the other 122 were
+the upstream sync those were built on top of, which carried the version string from 0.87.0 to 0.88.1. An
+image built that day would have shipped a pre-signing 0.2.0 piece.)
+
+## 2. What a release is
+
+A release of the piece is a `.tgz` built from one commit on `poc/orocommerce`, identified by three things
+recorded together on the tracking ticket: the commit, the sha256 of the `.tgz`, and the sha256 of
+`package/src/index.js` inside it. Activepieces stores the archive byte-for-byte (verified 7 Sep: the
+archive read back from `file.data` hashed identically), so the outer sha256 is enough to identify what an
+instance is running.
+
+Current release: **1.0.0** = commit `feb45cdf70`, `head-feb45cd-1.0.0.tgz`,
+sha256 `ced1e853f15717b11e8c6282d619c3e0443780c7035c4ced69fbc35915a0663c`, 67 144 bytes,
+`src/index.js` `11ad8876e985a4886be58645474ff5a442eefe4317611ae33feed922faef6cff`.
+
+Each release is published as a GitHub Release of this repository, tagged `piece-orocommerce-<version>` on
+the release commit, with the renamed `.tgz` attached and both hashes in the release notes, so anyone can
+download it. The tag names a piece release only; it says nothing about the Activepieces version of the
+branch.
+
+Version rule: from 1.0.0 the piece follows semantic versioning, judged from the consumer's side — major
+for a change that breaks an existing flow, minor for new actions, triggers or optional properties, patch
+for fixes that leave the contract intact ([record 10](decisions/0010-piece-versioning-1-0-0-and-semver.md)).
+Versions must still be plain `x.y.z` — Activepieces rejects prerelease suffixes at install.
+
+A build from a later commit is a different artifact even when nothing under the piece folder changed: the
+bundle inlines framework and core code from the rest of the repository, so an upstream sync changes it.
+Such a build gets a new version (record 10) - a patch if the contract is intact - and is never released
+under the old number.
+
+Renaming the package (`@activepieces/piece-orocommerce`) creates a new piece identity and orphans every
+flow built with the old name. [Record 7](decisions/0007-piece-package-name.md) keeps the current name; a
+rename needs a new decision record that supersedes it.
+
+## 3. How the piece reaches an instance
+
+Every deployment of the integration runs the Oro image; the piece alone reaches stock instances as the
+archive ([record 12](decisions/0012-every-deployment-runs-the-oro-image.md)).
+
+**The Oro image.** Two separate mechanisms, on the prefixed-path branch, often confused:
+
+- `Dockerfile.oro` **bakes the piece in as a workspace package**. Its builder stage compiles the piece
+  along with the app (`npx turbo run build --filter=… --filter=@activepieces/piece-orocommerce`), and the
+  step that strips the community pieces exempts it (`! -name orocommerce`, alongside slack, square,
+  facebook-leads and intercom), so `packages/pieces/community/orocommerce` survives into the runtime
+  image's `./packages`. `Dockerfile.oro` does **not** mention `AP_DEV_PIECES`.
+- `.env.oro.example` **sets `AP_DEV_PIECES=orocommerce`**, and that is what makes the baked-in package
+  load as an in-memory dev piece — no database row; its version is whatever the branch's `package.json`
+  says. The same file sets `AP_PIECES_SOURCE=CLOUD_AND_DB` and `AP_PIECES_SYNC_MODE=OFFICIAL_AUTO`.
+
+So the image only carries the piece because of the Dockerfile, and only serves it as a dev piece because
+of the env file; changing either one changes the Oro image. Changing the piece means rebuilding the image.
+
+**Archive install on a stock instance (the piece alone).** The `.tgz` is uploaded to the instance with
+`POST /v1/pieces` as a `CUSTOM` / `ARCHIVE` piece. **Nothing in the Oro bundle does this.**
+`oro:integration:activepieces:setup` provisions the Oro API user, OAuth application, AP user/project/
+connection and the platform API key, and pins the piece version - it never installs the piece. On a stock
+instance the upload is a separate step (§5).
+
+**The upload endpoint exists on every edition.** CE registers it through `communityPiecesModule`,
+Enterprise and Cloud through `platformPieceModule` - the same `POST /v1/pieces`, platform admin only,
+backed by the same install service. The vendor documents uploading private pieces as a paid-edition
+feature and hides the option in the CE UI, while the CE API still accepts it. An `ARCHIVE` install on
+EE/Cloud is untested; only the CE path has been proven.
+
+Either way, a flow pins the **exact** piece version. After any version change every flow that uses the
+piece must be re-pinned (§6); nothing upgrades automatically.
+
+## 4. Procedure — piece change (Case 1)
+
+1. Branch from `poc/orocommerce`. Change files under `packages/pieces/community/orocommerce/` only.
+2. Bump `package.json` `version` if §2's rule says so.
+3. Build and pack. Verified 7 Sep 2026 against `5fbed5df94`: these commands reproduced the released
+   artifact byte-for-byte — `09194f3f…`, 67 144 bytes, `src/index.js` `11ad8876…` — twice on one machine
+   (macOS 26.5.2 arm64, Node 24.13.0, bun 1.3.14, turbo 2.9.14, esbuild 0.28.1). The build is
+   deterministic; the outer `.tgz` hash is stable, not just the inner `index.js`. 1.0.0 reproduced the
+   same way on the same machine: two builds from clean worktrees of `feb45cdf70` were byte-identical at
+   67 144 bytes.
+   ```
+   bun install --frozen-lockfile
+   mkdir -p dist/packages/cli
+   ln -sfn ../../../packages/cli/node_modules dist/packages/cli/node_modules
+   npx turbo run bundle --filter=@activepieces/piece-orocommerce --force
+   cd packages/pieces/community/orocommerce/dist && npm pack
+   ```
+   The previously documented `npx nx build pieces-orocommerce` does not work and never did on this
+   commit: there is no nx in the repo — no `nx.json`, no nx dependency, no `node_modules/nx` — and the
+   command dies with “The current directory isn't part of an Nx workspace.” The piece's `project.json` is
+   a dead nx leftover; the build runs on turbo. The artifact is not a `tsc` emit either. `turbo run bundle`
+   chains the piece's `build` (`tsc -p tsconfig.lib.json`), the CLI's `build`, and then the CLI's
+   `pieces bundle`, which esbuilds `src/index.ts` into one minified self-contained `dist/src/index.js`,
+   rewrites the manifest (`main: ./src/index.js`, `dependencies: {}`, and a `files` allow-list) and prunes
+   `dist/` to exactly the eight files that get published. `npm pack` therefore runs in the piece's own
+   `dist/`, not in `dist/packages/…`.
+
+   The Activepieces CLI's own command, `bun run build-piece orocommerce`, reproduced 1.0.0 byte for byte
+   on `feb45cdf70` (23 Sep 2026, same toolchain as above) and needs no symlink, because it runs the CLI
+   from source. On the current `poc/orocommerce` tip it fails before building, on a type error in
+   upstream code (`packages/core/utils/src/lib/deno.ts`) that only appears under the CLI's looser
+   TypeScript settings; the same error occurs on upstream `main` when building another piece. Until that
+   is fixed upstream, use the procedure below. The CLI also hides turbo's output, so the tarball size
+   check matters just as much with it. Upstream has no issue for the `deno.ts` type error; it is listed
+   only as a known limitation (hit via `pieces generate-translation-file`) in the feature PR
+   activepieces/activepieces#15688 (21 Sep 2026), and is not fixed.
+
+   Two rules follow, and neither is optional:
+
+   - **Create the symlink `dist/packages/cli/node_modules` → `../../../packages/cli/node_modules` before
+     bundling.** The `bundle` script runs `node ../../../../dist/packages/cli/src/index.js`, and bun does
+     not hoist the CLI's dependencies — they install into `packages/cli/node_modules/` — so the compiled
+     CLI cannot resolve `commander` from under `dist/` and the step dies with `MODULE_NOT_FOUND`. Without
+     the symlink the piece never bundles at all.
+   - **Pass `--force`, and check the tarball afterwards every time.** The `bundle` task declares `outputs`
+     (`dist/index.bundle.js`, `dist/package.json`) that the bundler never writes, so turbo treats a
+     rebuild with unchanged inputs as a cache hit, skips esbuild, and leaves the `tsc` `index.js` in
+     place. `npm pack` then packs that instead of the bundle: a **~1 KB** tarball with no piece code in
+     it, no warning and no error. The artifact is the only place this is visible, so check the `.tgz` every
+     time: the failure is a ~1 KB tarball with no code, while a real build is tens to hundreds of KB. 0.3.0
+     and 1.0.0 were 67 144 bytes; a build on 24 Sep 2026 of the piece branch at `2eb800ca59` was 125 606
+     bytes because the bundle inlines more upstream code. Compare the size with the previous release and
+     account for any large change before using the artifact. Hash both the `.tgz` and
+     `package/src/index.js`: when rebuilding a recorded release both must match §2; when cutting a new
+     release, record them as that release's identity.
+
+   If the outer `.tgz` hash differs but `package/src/index.js` matches, the difference is archive metadata,
+   not code — record both hashes and say so.
+4. Record commit + both hashes on the tracking ticket and attach the `.tgz` and publish it as a GitHub
+   Release (§2). `npm pack` names it `activepieces-piece-orocommerce-<version>.tgz` (from the package name
+   and version, not from the commit); rename it `head-<short-sha>-<version>.tgz` so the artifact
+   identifies the commit it came from.
+5. Open a PR into `poc/orocommerce`; merge.
+6. Merge `poc/orocommerce` into `poc/orocommerce_prefixed-path-install` (a PR, not a direct push — the
+   embedding branch has its own owner). Re-run the §1 check; it must be empty.
+7. Rebuild the image from the prefixed-path branch and deploy it. Stock instances install the published
+   `.tgz` with §5.
+8. Re-pin every flow (§6).
+9. Update the Oro companion default (`activepieces_orocommerce_default_piece_version` in the bundle's
+   `services.yml`, and its README line) and the internal deployment page's "piece default".
+
+## 5. Installing the tarball on a stock CE instance (the piece alone)
+
+### Which path applies
+
+Sort yourself before reading anything else:
+
+| | Oro image (the integration) | Stock CE (the piece alone) |
+| --- | --- | --- |
+| How the piece gets in | baked into the image as a workspace package by `Dockerfile.oro` | uploaded as a `.tgz` via `POST /v1/pieces` |
+| Served as | in-memory dev piece, no database row | `CUSTOM` / `ARCHIVE` piece, row in `piece_metadata` |
+| Version comes from | the branch's `package.json` | the `pieceVersion` form field |
+| To change the version | rebuild and redeploy the image | rerun this section |
+| `POST /v1/pieces` | not used | exists on every edition; tested on CE only |
+
+Oro image - you are building the image from the prefixed-path branch: there is nothing to install, and
+the two mechanisms behind that column are §3. Enterprise: the upload endpoint exists there too, but an
+`ARCHIVE` install on EE/Cloud is untested (§3); this section describes the proven CE path. Stock CE
+instance (any stock instance, including a rig): the rest of this section.
+
+**The Oro bundle does not upload the piece** (§3): the setup command pins the version but never installs.
+This section is that separate step.
+
+### Preconditions
+
+In order — each one cost hours when skipped.
+
+1. **A worker is running and connected** ("Connected to API server via Socket.IO" in its log). Without one
+   the install hangs about 300 s and fails with `ENGINE_OPERATION_FAILURE`.
+2. **`AP_FRONTEND_URL` is the one URL reachable both from the host and from inside the containers.** Workers
+   download bundles and open Socket.IO through it, and it is the base of every webhook URL the piece
+   registers in Oro.
+3. **A platform API key (`sk-…`) exists.** On CE there is **no API endpoint** to create one —
+   `authenticate.ts` accepts `sk-` keys via `apiKeyService` with no edition guard, but CE registers no
+   `api-keys` routes. The only way to mint one is a row in `api_key`, which is what the Oro setup command
+   writes for the integration; for the piece alone on a stock instance you write it yourself: `id`
+   (21-char NanoId), `created`/`updated` (timestamptz), `displayName`, `platformId`,
+   `hashedValue` = hex SHA-256 of the full key, `truncatedValue` = last 4, `lastUsedAt` NULL. Key format:
+   `sk-` + 61 NanoId chars (`A-Za-z0-9`), 64 total. A key whose hash is not in the table gets 401 — and so
+   does a key whose insert has not been committed, with no useful error either way. Commit before calling.
+
+   Create it with this script (tested on stock CE 0.88.1, 25 Sep 2026):
+
+   ```
+   #!/bin/sh
+   # Creates a platform API key (sk-...) on a stock Activepieces CE instance, the way
+   # apiKeyService.add() does on the editions that have the endpoint (Activepieces 0.88.1).
+   # Usage: PGPASSWORD=... sh create-api-key.sh HOST PORT DATABASE USER [PLATFORM_ID]
+   # The key goes to stdout and everything else to stderr, so SK_KEY=$(sh create-api-key.sh ...) works.
+   set -eu
+   export LC_ALL=C
+
+   if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+       echo "usage: PGPASSWORD=... sh $0 HOST PORT DATABASE USER [PLATFORM_ID]" >&2
+       exit 2
+   fi
+   host=$1 port=$2 db=$3 user=$4 platform=${5:-}
+
+   q() { psql -X -q -At -v ON_ERROR_STOP=1 -h "$host" -p "$port" -d "$db" -U "$user" "$@"; }
+
+   # rand N: N random characters from [A-Za-z0-9], the alphabet of apId() and secureApId()
+   rand() {
+       out=
+       while [ "${#out}" -lt "$1" ]; do
+           out=$out$(dd if=/dev/urandom bs=256 count=1 2>/dev/null | tr -dc 'A-Za-z0-9')
+       done
+       printf '%s' "$out" | cut -c "1-$1"
+   }
+
+   sha256hex() {
+       if command -v sha256sum >/dev/null 2>&1; then printf '%s' "$1" | sha256sum
+       else printf '%s' "$1" | shasum -a 256
+       fi | cut -d ' ' -f 1
+   }
+
+   row=$(q -F ' ' -v platform="$platform" <<'SQL'
+   SELECT count(*), min(id) FROM platform WHERE :'platform' = '' OR id = :'platform';
+   SQL
+   )
+   if [ "${row%% *}" != 1 ]; then
+       if [ -z "$platform" ]; then
+           echo "error: ${row%% *} platforms found; pass the platform id as the fifth argument" >&2
+       else
+           echo "error: platform $platform not found" >&2
+       fi
+       exit 1
+   fi
+   platform=${row#* }
+
+   id=$(rand 21)
+   key=sk-$(rand 61)
+   hash=$(sha256hex "$key")
+   case $hash in
+       *[!0-9a-f]* | '') echo "error: could not hash the key (need sha256sum or shasum)" >&2; exit 1 ;;
+   esac
+
+   inserted=$(q -v id="$id" -v platform="$platform" -v hash="$hash" -v last4="${key#"${key%????}"}" <<'SQL'
+   BEGIN;
+   INSERT INTO api_key (id, created, updated, "displayName", "platformId", "hashedValue", "truncatedValue", "lastUsedAt")
+   VALUES (:'id', now(), now(), 'piece install', :'platform', :'hash', :'last4', NULL)
+   RETURNING id;
+   COMMIT;
+   SQL
+   )
+   if [ "$inserted" != "$id" ]; then
+       echo "error: the key was not saved" >&2
+       exit 1
+   fi
+
+   echo "Created API key $id on platform $platform. It is shown once, below; store it now." >&2
+   printf '%s\n' "$key"
+   ```
+
+   You need direct access to the Activepieces database; the key is shown once.
+4. **A platform exists.** On a fresh 0.88.1 instance, sign-up does **not** create one. It returns an
+   `ONBOARDING` token; `POST /v1/platforms {"name": …}` with that token creates platform + project and
+   rotates the token.
+
+### The install
+
+```
+curl -X POST "$AP_URL/api/v1/pieces" \
+  -H "Authorization: Bearer $SK_KEY" \
+  --form-string 'packageType=ARCHIVE' \
+  --form-string 'scope=PLATFORM' \
+  --form-string 'pieceName=@activepieces/piece-orocommerce' \
+  --form-string 'pieceVersion=1.0.0' \
+  -F 'pieceArchive=@head-feb45cd-1.0.0.tgz;type=application/gzip'
+```
+
+- `--form-string` for every scalar field, and **mandatory** for `pieceName`: it starts with `@`, and `-F`
+  would make curl read a file named `activepieces/piece-orocommerce` and fail with `HTTP 000` before any
+  request is sent.
+- `scope` accepts only `PLATFORM`. `pieceVersion` is a plain `x.y.z` (§2).
+- **Name and version come from the form fields, not from the tarball.** Mismatched fields install a piece
+  that claims a version its code does not match, with no complaint from either side.
+- 201 = installed. 409 `piece_metadata_already_exists` = this exact name+version is already there, which
+  is fine for the piece — but the archive is saved before the duplicate check, so **every 409 leaves an
+  orphan 67 KB `PACKAGE_ARCHIVE` row in `file`**. Check what is installed first rather than retrying blindly.
+- Never `DELETE` a piece or a version. Versions cannot be removed individually and flows pin them.
+
+### Listing what is installed
+
+`GET /api/v1/pieces/@activepieces%2Fpiece-orocommerce` returns a **single** metadata object — the latest
+version, or the one named by an optional `?version=` — not a list, and CE has no per-piece versions route.
+To see every installed version, use the registry and filter by name:
+
+```
+GET /api/v1/pieces/registry?release=<ap version>&edition=ce
+```
+
+Both query parameters are mandatory (the schema marks neither optional); the response is `{name, version}`
+entries for the whole registry, so filter it by `@activepieces/piece-orocommerce` yourself.
+Source-read at CE 0.88.1, **not yet run live**.
+
+### Verify
+
+The `piece_metadata` row has `pieceType=CUSTOM` and `packageType=ARCHIVE`, under the unique key
+`(name, version, platformId)`, and the piece detail endpoint shows **11 actions and 1 trigger**
+(`oro-webhook-event`).
+
+## 6. Re-pinning flows after a version change
+
+Flows pin the exact version and nothing upgrades automatically, so every flow using the piece needs this
+after any version change. Per flow, two calls to `POST /api/v1/flows/{id}`:
+
+1. `{"type":"UPDATE_TRIGGER","request":{ …the whole trigger object… }}` — the schema requires the full
+   trigger (`name`, `type: PIECE_TRIGGER`, `displayName`, `valid`, `lastUpdatedDate`, `settings` with
+   `pieceName`, `pieceVersion`, `triggerName`, `propertySettings`, `input`). Only `pieceVersion` changes;
+   everything else is echoed back unchanged. `pieceType`, `packageType`, `inputUiInfo` are not part of the
+   schema and are dropped.
+2. `{"type":"LOCK_AND_PUBLISH","request":{}}`.
+
+Prefer this API path over upgrading in the UI: the UI upgrade resets the connection and topic inputs.
+
+### The `signDeliveries` trap
+
+Echoing the whole trigger object back with only `pieceVersion` changed is exactly the operation that carries
+an old explicit `signDeliveries: false` forward — and leaves that flow unsigned after the re-pin.
+
+The prop is a checkbox with `defaultValue: true`, but `onEnable` suppresses the secret only on a strict
+`=== false`. **A missing key signs; only an explicit `false` does not.** So a flow whose stored `input`
+still carries `signDeliveries: false` gets re-pinned to the new version and silently stays unsigned: the new
+registration is created without a secret, and because `run()` keys off the secret in the flow's store rather
+than off the prop, it finds none and passes every delivery through unverified. Echoing the trigger object
+back faithfully preserves exactly that.
+
+A migration that re-pins flows in bulk therefore has to **decide** whether to force `signDeliveries` rather
+than preserve it. Echoing it back is the wrong default for any flow that is meant to end up signed; the
+decision has to be made deliberately and recorded, not inherited from whatever the flow happened to store.
+
+### Checking the registration in Oro
+
+The trigger's `onEnable` deletes the flow's existing webhook row and creates a new one with a new secret
+(Oro's webhook secret can only be set on create). Check afterwards in
+`oro_integration_webhook_producer_settings`, filtering on the **flow id**, not on the full URL:
+
+```sql
+SELECT id, notification_url, length(secret)
+FROM oro_integration_webhook_producer_settings
+WHERE notification_url LIKE '%<flowId>%';
+```
+
+Filter by flow id because `notification_url` is built on `AP_FRONTEND_URL`. If that base has changed, a
+surviving old registration sits under the *old* URL, and a query scoped to the current full URL returns
+exactly one row whether or not the stale registration is still live — a false pass. The flow id is stable
+across base-URL changes; the URL around it is not.
+
+Expect **exactly one row**, with `length(secret) = 108`.
+
+- Two rows means an old registration is still live alongside the new one — and if it predates 0.3.0, it is
+  unsigned.
+- `length(secret) = 108` is the signing case: the encrypted form of the 64-hex-char secret the piece
+  generates. `length(secret) = 24` is the encrypted form of an *empty* secret, i.e. no signing.
+- `secret` is nullable, but a signing piece never writes NULL, so `IS NULL` is the wrong test — compare the
+  length.
+
+### What the piece checks on delivery
+
+Oro sends two headers, captured live on 3 Sep 2026: `Webhook-Signature`, a 64-hex-character HMAC-SHA256
+digest of the body, and `Webhook-Signature-Algorithm: HMAC-SHA256`.
+
+The piece reads **only** `webhook-signature`, and compares it against a bare hex HMAC-SHA256 of the raw body
+— no `sha256=` prefix. It never reads the algorithm header: the string `algorithm` does not occur anywhere
+in the package, so the algorithm Oro declares is neither checked nor honoured and SHA-256 is simply assumed.
+If Oro ever changes it, the piece will not notice; it will just start rejecting every delivery.
+
+A missing or mismatched signature produces HTTP 200, no run, and a single `discarded` warning line in the
+log — so a flow that is discarding every delivery looks healthy from the outside.
+
+### Failure modes (§5 and §6)
+
+| Symptom | Cause |
+| --- | --- |
+| install hangs ~300 s, then `ENGINE_OPERATION_FAILURE` | no worker connected (§5) |
+| `HTTP 000`, nothing sent on the wire | `-F` used for `pieceName` instead of `--form-string` |
+| 401, no useful error | key hash not in `api_key`, or the insert was never committed |
+| 409 `piece_metadata_already_exists` | that name+version is already installed; each attempt leaves an orphan `PACKAGE_ARCHIVE` row in `file` |
+| installs cleanly, but runs cannot find the piece code | ~1 KB tarball from a cached build — rebuild with `--force` (§4) |
+| flow still behaves as it did before | flow not re-pinned |
+| two rows in `oro_integration_webhook_producer_settings` for one flow | stale registration still live; a pre-0.3.0 one is unsigned |
+| `length(secret) = 24` | empty secret — the registration is not signed |
+| re-pinned flow still unsigned, deliveries unverified | an explicit `signDeliveries: false` echoed back by the re-pin |
+
+## 7. Procedure — new upstream Activepieces sync (Case 2)
+
+1. Pick the ref for the project stage
+   ([record 6](decisions/0006-upstream-sync-via-origin-main-or-tags.md)). While the integration is under
+   development the fork syncs from its own `origin/main`, to meet upstream's changes — and upstream's
+   breakage — as early as possible. When it is ready for release the fork moves onto the upstream release
+   tag, and stays there.
+
+   - **Development phase.** `git fetch origin`, then merge `origin/main`. A requirement from the fork's
+     owner, 21 Sep 2026: **check that upstream `main` is healthy before merging it.** What counts as
+     healthy is not defined — no check is named and no pass condition is stated — so until one exists this
+     is a judgement you make and write down, not a command you run. It is not a theoretical requirement:
+     upstream `main` was broken during the week of 14 Sep 2026 and two syncs were taken from it that week
+     regardless (`c932f4addd`, 14 Sep; `f3f39a6284`, 15 Sep). This is the phase the fork has been in
+     throughout - every merge so far has been by the fork owner, all of `origin/main` at an **untagged**
+     tip.
+   - **Release phase (unverified).** `git remote add upstream
+     https://github.com/activepieces/activepieces` if absent; `git fetch upstream --tags`; the ref is the
+     release tag `<x.y.z>`, with no `v` prefix — upstream publishes no `v`-prefixed tags. Upstream also
+     publishes a `release/v<x.y.z>` branch per release, but it is a different commit from the
+     same-numbered tag more often than not — of the 165 release branches carrying a plain `x.y.z`, 103
+     differ from the tag, 55 equal it and 7 have no tag (21 Sep 2026) — so it is not a substitute for the
+     tag. This half has never been run in this fork.
+2. On `poc/orocommerce`: `git merge <ref>`. Expect zero conflicts. A conflict outside
+   `packages/pieces/community/orocommerce/` means piece-only policy was broken; fix the policy.
+
+   A development-phase merge leaves the fork on no released version, and any report of what it runs should
+   say so. `git describe` on a merged commit gives an offset, not a version: `cd36237260` of 20 Aug 2026
+   gives `0.86.3-rc.2-451-g71dd1758dc`, and tag `0.88.1` is not in that history at all — 4 commits in the
+   tag are missing from it, 83 extra are present.
+3. On `poc/orocommerce_prefixed-path-install`: `git merge poc/orocommerce`. Conflicts are possible in the
+   embedding patches and `Dockerfile.oro` — they are the only files the fork changes outside the piece, so
+   they are the only ones that can conflict — but they are not to be expected as a matter of course. The
+   7 Sep merge, which carried the upstream 0.87.0 → 0.88.1 sync, had exactly one conflict: `bun.lock`, two
+   hunks (the piece's `version`, and an added `vitest` devDependency), both resolved to the incoming side.
+   Every embedding file and `Dockerfile.oro` merged clean.
+4. Bring up a stock CE instance on the new upstream version and repeat the 7 Sep proof (the tracking
+   ticket results table).
+   Re-check first the facts everything else rests on: `sk-` keys still authenticate on CE without an endpoint;
+   `POST /v1/pieces` still exists on CE; `PieceScope` still only `PLATFORM`; the trigger signs unless
+   `signDeliveries === false`; sign-up still returns `ONBOARDING`.
+5. Do not bump the piece unless the piece changed. Rebuild the image regardless.
+6. Update the internal deployment page's "tested against" version.
+
+## 8. If the piece merges upstream (Case 3)
+
+The image's two mechanisms (§3) both become redundant - in the same PR that takes the upstream tag
+containing the piece, remove `AP_DEV_PIECES=orocommerce` from **`.env.oro.example`** (not from
+`Dockerfile.oro`, which never set it), and drop the piece's build filter and its `! -name orocommerce`
+prune exemption from `Dockerfile.oro`, so the image picks the piece up from upstream like any other.
+Stock instances could then install it from the registry like any official piece, and §5 would no longer
+be needed. The package name is settled ([record 7](decisions/0007-piece-package-name.md)).
+
+## 9. Do not put in this file
+
+This repository is public. Keep out of it:
+
+- Hostnames, IP addresses or ports of any instance, and any identifier of a test rig.
+- Keys, secrets, tokens or connection strings, redacted or otherwise.
+- Issue-tracker keys, wiki page ids and internal deployment names — refer to "the tracking ticket", "the
+  deployment page", "an internal deployment".
+- The names of individual people — refer to the role: "the branch owner", "the maintainer".
+- Unfixed defects and security findings, and unannounced commercial or packaging decisions. Those live on
+  the tracking ticket, not here.
