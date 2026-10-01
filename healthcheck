@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eu
+
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+
+port="${AP_PORT:-4200}"
+
+if [ "${AP_CONTAINER_TYPE:-APP}" = "WORKER" ]; then
+	path="/worker/health"
+else
+	path="/api/v1/health"
+fi
+
+curl -Lfs --max-time 5 -H "User-Agent: Docker health check" "http://127.0.0.1:${port}${path}" -o /dev/null
