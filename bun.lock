@@ -120,7 +120,7 @@
     },
     "packages/core/execution": {
       "name": "@activepieces/core-execution",
-      "version": "0.23.5",
+      "version": "0.23.6",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -165,7 +165,7 @@
     },
     "packages/core/shared": {
       "name": "@activepieces/shared",
-      "version": "0.188.0",
+      "version": "0.191.0",
       "dependencies": {
         "@activepieces/core-execution": "workspace:*",
         "@activepieces/core-formula": "workspace:*",
@@ -188,7 +188,7 @@
     },
     "packages/core/utils": {
       "name": "@activepieces/core-utils",
-      "version": "0.8.3",
+      "version": "0.8.6",
       "dependencies": {
         "deepmerge-ts": "8.0.2",
         "ipaddr.js": "2.3.0",
@@ -348,7 +348,7 @@
     },
     "packages/pieces/community/ai": {
       "name": "@activepieces/piece-ai",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -709,7 +709,7 @@
     },
     "packages/pieces/community/apitable": {
       "name": "@activepieces/piece-apitable",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -1877,7 +1877,7 @@
     },
     "packages/pieces/community/claude": {
       "name": "@activepieces/piece-claude",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -2043,7 +2043,7 @@
     },
     "packages/pieces/community/cloudinary": {
       "name": "@activepieces/piece-cloudinary",
-      "version": "0.1.7",
+      "version": "0.2.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -3903,7 +3903,7 @@
     },
     "packages/pieces/community/google-gemini": {
       "name": "@activepieces/piece-google-gemini",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -3923,7 +3923,7 @@
     },
     "packages/pieces/community/google-my-business": {
       "name": "@activepieces/piece-google-my-business",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -3934,6 +3934,7 @@
       },
       "devDependencies": {
         "tslib": "2.6.2",
+        "vitest": "3.2.6",
       },
     },
     "packages/pieces/community/google-search": {
@@ -4166,7 +4167,7 @@
     },
     "packages/pieces/community/grist": {
       "name": "@activepieces/piece-grist",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -4194,7 +4195,7 @@
     },
     "packages/pieces/community/groq": {
       "name": "@activepieces/piece-groq",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -4384,7 +4385,7 @@
     },
     "packages/pieces/community/hubspot": {
       "name": "@activepieces/piece-hubspot",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -4395,6 +4396,7 @@
       },
       "devDependencies": {
         "tslib": "2.6.2",
+        "vitest": "3.2.6",
       },
     },
     "packages/pieces/community/hugging-face": {
@@ -4496,7 +4498,7 @@
     },
     "packages/pieces/community/imap": {
       "name": "@activepieces/piece-imap",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -5167,7 +5169,7 @@
     },
     "packages/pieces/community/linear": {
       "name": "@activepieces/piece-linear",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -5981,7 +5983,7 @@
     },
     "packages/pieces/community/microsoft-todo": {
       "name": "@activepieces/piece-microsoft-todo",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -6463,7 +6465,7 @@
     },
     "packages/pieces/community/odoo": {
       "name": "@activepieces/piece-odoo",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -6603,7 +6605,7 @@
     },
     "packages/pieces/community/openai": {
       "name": "@activepieces/piece-openai",
-      "version": "0.11.1",
+      "version": "0.12.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -6930,7 +6932,7 @@
     },
     "packages/pieces/community/perplexity-ai": {
       "name": "@activepieces/piece-perplexity-ai",
-      "version": "0.3.7",
+      "version": "0.4.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -6940,6 +6942,7 @@
       },
       "devDependencies": {
         "tslib": "2.6.2",
+        "vitest": "3.2.6",
       },
     },
     "packages/pieces/community/personal-ai": {
@@ -7242,13 +7245,14 @@
     },
     "packages/pieces/community/presentation": {
       "name": "@activepieces/piece-presentation",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
         "dayjs": "1.11.9",
+        "form-data": "4.0.6",
       },
       "devDependencies": {
         "tslib": "^2.3.0",
@@ -7861,7 +7865,7 @@
     },
     "packages/pieces/community/rss": {
       "name": "@activepieces/piece-rss",
-      "version": "0.5.9",
+      "version": "0.6.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -8759,7 +8763,7 @@
     },
     "packages/pieces/community/stripe": {
       "name": "@activepieces/piece-stripe",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -8788,7 +8792,7 @@
     },
     "packages/pieces/community/supadata": {
       "name": "@activepieces/piece-supadata",
-      "version": "0.1.7",
+      "version": "0.2.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -9091,7 +9095,7 @@
     },
     "packages/pieces/community/ticktick": {
       "name": "@activepieces/piece-ticktick",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -9283,7 +9287,7 @@
     },
     "packages/pieces/community/twilio": {
       "name": "@activepieces/piece-twilio",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -9323,7 +9327,7 @@
     },
     "packages/pieces/community/twitter": {
       "name": "@activepieces/piece-twitter",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -10105,7 +10109,7 @@
     },
     "packages/pieces/community/youtube": {
       "name": "@activepieces/piece-youtube",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -10136,7 +10140,7 @@
     },
     "packages/pieces/community/zendesk": {
       "name": "@activepieces/piece-zendesk",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -10980,7 +10984,7 @@
     },
     "packages/server/utils": {
       "name": "@activepieces/server-utils",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@activepieces/ai-providers": "workspace:*",
         "@activepieces/core-formula": "workspace:*",
@@ -11184,6 +11188,7 @@
         "zustand": "4.5.4",
       },
       "devDependencies": {
+        "@tailwindcss/node": "4.1.17",
         "@tailwindcss/postcss": "4.1.17",
         "@tailwindcss/vite": "4.1.17",
         "@testing-library/react": "16.3.3",
@@ -11198,6 +11203,7 @@
         "jsdom": "26.1.0",
         "pg": "8.20.0",
         "tailwindcss": "4.1.17",
+        "typescript": "5.5.4",
       },
     },
   },
