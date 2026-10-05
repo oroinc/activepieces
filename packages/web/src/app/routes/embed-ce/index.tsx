@@ -86,7 +86,7 @@ const handleClientNavigation = () => {
 
 const EmbedCePage = React.memo(() => {
   const { setEmbedState, embedState } = useEmbedding();
-  const { setTheme, setForceLightMode } = useTheme();
+  const { setPreferenceWithoutPersisting } = useTheme();
   const { i18n } = useTranslation();
   const { checkAccess } = useAuthorization();
 
@@ -113,10 +113,7 @@ const EmbedCePage = React.memo(() => {
     // authenticationSession.saveResponse that EmbedPage triggers.
     window.dispatchEvent(new Event('storage'));
 
-    if (event.data.data.mode) {
-      setForceLightMode(false);
-      setTheme(event.data.data.mode);
-    }
+    setPreferenceWithoutPersisting(event.data.data.mode ?? 'light');
 
     i18n.changeLanguage(event.data.data.locale ?? 'en');
 
@@ -173,7 +170,6 @@ const EmbedCePage = React.memo(() => {
   };
 
   useEffectOnce(() => {
-    setForceLightMode(true);
     const event: ActivepiecesClientInit = {
       type: ActivepiecesClientEventName.CLIENT_INIT,
       data: {},
