@@ -1,11 +1,13 @@
 import { ActivepiecesError, ErrorCode, isNil, SeekPage } from '@activepieces/core-utils'
 import { ListTemplatesRequestQuery, Template } from '@activepieces/shared'
+import { system } from '../helper/system/system'
+import { AppSystemProp } from '../helper/system/system-props'
 
-const TEMPLATES_SOURCE_URL = 'https://cloud.activepieces.com/api/v1/templates'
+const templatesSourceUrl = (): string => system.getOrThrow(AppSystemProp.TEMPLATES_SOURCE_URL)
 
 export const communityTemplates = {
     getOrThrow: async (id: string): Promise<Template> => {
-        const url = `${TEMPLATES_SOURCE_URL}/${id}`
+        const url = `${templatesSourceUrl()}/${id}`
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -26,7 +28,7 @@ export const communityTemplates = {
         return template
     },
     getCategories: async (): Promise<string[]> => {
-        const url = `${TEMPLATES_SOURCE_URL}/categories`
+        const url = `${templatesSourceUrl()}/categories`
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -38,7 +40,7 @@ export const communityTemplates = {
     },
     list: async (request: ListTemplatesRequestQuery): Promise<SeekPage<Template>> => {
         const queryString = convertToQueryString(request)
-        const url = `${TEMPLATES_SOURCE_URL}?${queryString}`
+        const url = `${templatesSourceUrl()}?${queryString}`
         const response = await fetch(url, {
             method: 'GET',
             headers: {
