@@ -7,6 +7,14 @@ variable "BUILD_TIMESTAMP" { default = null }
 variable "GIT_BRANCH" { default = null }
 variable "TAG_NAME" { default = null }
 
+variable "extra_tags" {
+  default = concat(
+    GIT_BRANCH == "integration/oro-apps" ? ["development"] : [],
+    GIT_BRANCH == null ? [] : [for m in regexall("^release/(.+)$", GIT_BRANCH) : "test-release-${m[0]}"],
+    TAG_NAME != null && length(regexall("-patched$", "${TAG_NAME}")) > 0 ? [TAG_NAME, "latest"] : [],
+  )
+}
+
 function "labelList" {
   params = []
   result = {
@@ -25,7 +33,7 @@ group "default" {
 target "runtime" {
   target     = "runtime"
   dockerfile = "Dockerfile.oro"
-  tags       = concat(["${ORO_AP_IMAGE}:${ORO_AP_IMAGE_TAG}"], GIT_BRANCH == "main" ? ["${ORO_AP_IMAGE}:latest"] : [])
+  tags       = [for t in length(extra_tags) > 0 ? extra_tags : [ORO_AP_IMAGE_TAG] : "${ORO_AP_IMAGE}:${t}"]
   labels     = labelList()
   // platforms = ["linux/amd64", "linux/arm64"]
 }
