@@ -167,6 +167,8 @@ LABEL org.opencontainers.image.title="Activepieces" \
 COPY --link --from=builder /var/lib/activepieces/packages/server/api/src/assets/default.cf /usr/local/etc/isolate
 COPY --link --chmod=755 healthcheck /usr/local/bin/healthcheck
 COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --link --chmod=755 docker-entrypoint.oro.sh /usr/local/bin/docker-entrypoint.oro.sh
+COPY --link scripts/create-admin.js ./scripts/create-admin.js
 COPY --link --from=prod-deps /var/lib/activepieces/package.json .
 COPY --link --from=prod-deps /var/lib/activepieces/bun.lock .
 COPY --link --from=prod-deps /var/lib/activepieces/bunfig.toml .
@@ -184,4 +186,4 @@ EOR
 
 USER activepieces
 EXPOSE 4200
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.oro.sh"]

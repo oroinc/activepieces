@@ -6,6 +6,8 @@ services:
     env_file: .env
     environment:
       AP_CONTAINER_TYPE: APP
+      # Only invited users can sign up; set to true in .env to open registration
+      AP_ALLOW_OPEN_SIGN_UP: ${AP_ALLOW_OPEN_SIGN_UP:-false}
       # Absolute paths that match the mounted volumes
       AP_CACHE_PATH: /var/lib/activepieces/cache
       AP_CONFIG_PATH: /var/lib/activepieces/config
@@ -18,6 +20,27 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "healthcheck"]
+    volumes:
+      - cache:/var/lib/activepieces/cache
+      - config:/var/lib/activepieces/config
+
+  # One-shot init runtime: creates the first admin and their personal project, then exits. Skips when a platform already exists.
+  init:
+    image: ${ORO_AP_IMAGE:-harborio.oro.cloud/activepieces/activepieces}:${ORO_AP_IMAGE_TAG:-latest}
+    restart: "no"
+    env_file: .env
+    environment:
+      AP_CONTAINER_TYPE: APP
+      AP_CACHE_PATH: /var/lib/activepieces/cache
+      AP_CONFIG_PATH: /var/lib/activepieces/config
+      AP_ADMIN_EMAIL: ${AP_ADMIN_EMAIL:-}
+      AP_ADMIN_PASSWORD: ${AP_ADMIN_PASSWORD:-}
+      AP_ADMIN_FIRST_NAME: ${AP_ADMIN_FIRST_NAME:-Admin}
+      AP_ADMIN_LAST_NAME: ${AP_ADMIN_LAST_NAME:-User}
+    command: ["init_runtime"]
+    depends_on:
+      app:
+        condition: service_healthy
     volumes:
       - cache:/var/lib/activepieces/cache
       - config:/var/lib/activepieces/config

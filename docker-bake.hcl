@@ -33,7 +33,7 @@ group "default" {
 target "runtime" {
   target     = "runtime"
   dockerfile = "Dockerfile.oro"
-  tags       = [for t in length(extra_tags) > 0 ? extra_tags : [ORO_AP_IMAGE_TAG] : "${ORO_AP_IMAGE}:${t}"]
+  tags       = [for t in distinct(concat([ORO_AP_IMAGE_TAG], extra_tags)) : "${ORO_AP_IMAGE}:${t}"]
   labels     = labelList()
   // platforms = ["linux/amd64", "linux/arm64"]
 }
