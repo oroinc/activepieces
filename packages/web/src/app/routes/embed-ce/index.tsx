@@ -1,12 +1,3 @@
-import {
-  ActivepiecesClientAuthenticationSuccess,
-  ActivepiecesClientConfigurationFinished,
-  ActivepiecesClientEventName,
-  ActivepiecesClientInit,
-  ActivepiecesVendorEventName,
-  ActivepiecesVendorInit,
-  ActivepiecesVendorRouteChanged,
-} from 'ee-embed-sdk';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -23,15 +14,23 @@ import {
   routesThatRequireProjectId,
 } from '@/lib/route-utils';
 
+import {
+  EmbedCeClientEvent,
+  EmbedCeClientMessage,
+  EmbedCeHostEvent,
+  EmbedCeHostInitMessage,
+  EmbedCeHostRouteChangedMessage,
+} from './protocol';
+
 // Copied from embed/index.tsx — notifies host that auth + config are done
 const notifyVendorPostAuthentication = () => {
-  const authenticationSuccessEvent: ActivepiecesClientAuthenticationSuccess = {
-    type: ActivepiecesClientEventName.CLIENT_AUTHENTICATION_SUCCESS,
+  const authenticationSuccessEvent: EmbedCeClientMessage = {
+    type: EmbedCeClientEvent.AUTHENTICATION_SUCCESS,
     data: {},
   };
   parentWindow.postMessage(authenticationSuccessEvent, '*');
-  const configurationFinishedEvent: ActivepiecesClientConfigurationFinished = {
-    type: ActivepiecesClientEventName.CLIENT_CONFIGURATION_FINISHED,
+  const configurationFinishedEvent: EmbedCeClientMessage = {
+    type: EmbedCeClientEvent.CONFIGURATION_FINISHED,
     data: {},
   };
   parentWindow.postMessage(configurationFinishedEvent, '*');
@@ -40,11 +39,11 @@ const notifyVendorPostAuthentication = () => {
 // Copied from embed/index.tsx — listens for VENDOR_ROUTE_CHANGED from host
 const handleVendorNavigation = ({ projectId }: { projectId: string }) => {
   const handleVendorRouteChange = (
-    event: MessageEvent<ActivepiecesVendorRouteChanged>,
+    event: MessageEvent<EmbedCeHostRouteChangedMessage>,
   ) => {
     if (
       event.source === parentWindow &&
-      event.data.type === ActivepiecesVendorEventName.VENDOR_ROUTE_CHANGED
+      event.data.type === EmbedCeHostEvent.ROUTE_CHANGED
     ) {
       const targetRoute = event.data.data.vendorRoute;
       const targetRouteRequiresProjectId = Object.values(
@@ -72,15 +71,13 @@ const handleClientNavigation = () => {
       /\/projects\/[^/]+/,
       '',
     );
-    parentWindow.postMessage(
-      {
-        type: ActivepiecesClientEventName.CLIENT_ROUTE_CHANGED,
-        data: {
-          route: pathNameWithoutProjectOrProjectId + state.location.search,
-        },
+    const routeChangedEvent: EmbedCeClientMessage = {
+      type: EmbedCeClientEvent.ROUTE_CHANGED,
+      data: {
+        route: pathNameWithoutProjectOrProjectId + state.location.search,
       },
-      '*',
-    );
+    };
+    parentWindow.postMessage(routeChangedEvent, '*');
   });
 };
 
@@ -90,10 +87,10 @@ const EmbedCePage = React.memo(() => {
   const { i18n } = useTranslation();
   const { checkAccess } = useAuthorization();
 
-  const initState = (event: MessageEvent<ActivepiecesVendorInit>) => {
+  const initState = (event: MessageEvent<EmbedCeHostInitMessage>) => {
     if (
       event.source !== parentWindow ||
-      event.data.type !== ActivepiecesVendorEventName.VENDOR_INIT
+      event.data.type !== EmbedCeHostEvent.INIT
     ) {
       return;
     }
@@ -170,8 +167,8 @@ const EmbedCePage = React.memo(() => {
   };
 
   useEffectOnce(() => {
-    const event: ActivepiecesClientInit = {
-      type: ActivepiecesClientEventName.CLIENT_INIT,
+    const event: EmbedCeClientMessage = {
+      type: EmbedCeClientEvent.INIT,
       data: {},
     };
     parentWindow.postMessage(event, '*');
