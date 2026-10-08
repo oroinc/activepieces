@@ -1,0 +1,18 @@
+# Local OroCommerce setup: run the Oro image against the host OroCommerce checkout.
+#   docker compose -f docker-compose.oro.yml -f docker-compose.oro-local.yml up -d
+services:
+  app:
+    image: ${ORO_AP_IMAGE:-192.168.31.160:32768/activepieces/activepieces}:${ORO_AP_IMAGE_TAG:-latest}
+    # Flows call OroCommerce by its local nginx domain.
+    extra_hosts:
+      - "commerce-crm-ee.master.loc:host-gateway"
+
+  worker:
+    image: ${ORO_AP_IMAGE:-192.168.31.160:32768/activepieces/activepieces}:${ORO_AP_IMAGE_TAG:-latest}
+    extra_hosts:
+      - "commerce-crm-ee.master.loc:host-gateway"
+
+  postgres:
+    # OroCommerce reads the Activepieces database directly (host 5432 is taken by the local PostgreSQL).
+    ports:
+      - "127.0.0.1:5433:5432"
