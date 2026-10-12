@@ -214,3 +214,20 @@ describe('domainHelper.getBrowserLandingUrl', () => {
         expect(domainHelper.getBrowserLandingUrl({})).toBe('https://apps.example.com')
     })
 })
+
+describe('domainHelper.getBaseHref', () => {
+    afterEach(() => {
+        vi.restoreAllMocks()
+    })
+
+    it.each([
+        ['https://apps.example.com/activepieces', '/activepieces/'],
+        ['https://apps.example.com/admin/activepieces-instance/', '/admin/activepieces-instance/'],
+        ['https://apps.example.com', '/'],
+        ['https://apps.example.com/', '/'],
+    ])('derives the base href of %s', (frontendUrl, expected) => {
+        stubSystemProps({ frontendUrl })
+
+        expect(domainHelper.getBaseHref()).toBe(expected)
+    })
+})

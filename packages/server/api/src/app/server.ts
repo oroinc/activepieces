@@ -18,6 +18,7 @@ import { getAdapter, setupApp } from './app'
 import { oidcDiscoveryController } from './core/security/oidc/oidc-discovery.controller'
 import { websocketService } from './core/websockets.service'
 import { healthModule } from './health/health.module'
+import { domainHelper } from './helper/domain-helper'
 import { embedSecurity } from './helper/embed-security'
 import { enrichWideEventWithError, errorHandler } from './helper/error-handler'
 import { exceptionHandler } from './helper/exception-handler'
@@ -127,11 +128,9 @@ export const setupServer = async (): Promise<FastifyInstance> => {
         })
 
         const rawIndexHtml = fs.readFileSync(path.join(frontendPath, 'index.html'), 'utf-8')
-        const assetsPrefix = process.env.AP_ASSETS_PREFIX
-        const runtimeBaseHref = assetsPrefix ? `/${assetsPrefix.replace(/^\/|\/$/g, '')}/` : '/'
         const indexHtml = rawIndexHtml.replace(
             /<base\s+href="[^"]*"\s*\/?>/,
-            `<base href="${runtimeBaseHref}" />`,
+            `<base href="${domainHelper.getBaseHref()}" />`,
         )
 
         app.setNotFoundHandler(async (request, reply) => {
