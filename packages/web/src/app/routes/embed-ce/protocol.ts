@@ -52,8 +52,6 @@ export type EmbedCeHostInitMessage = {
     fontUrl?: string;
     fontFamily?: string;
     formulasDocsUrl?: string;
-    gtmContainerId?: string;
-    clarityProjectId?: string;
   };
 };
 

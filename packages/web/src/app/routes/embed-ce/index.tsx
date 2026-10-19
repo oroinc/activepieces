@@ -22,18 +22,26 @@ import {
   EmbedCeHostRouteChangedMessage,
 } from './protocol';
 
+// The host page shares the origin of /embed-ce, because the session is read from this origin's
+// localStorage. Messages are sent to and accepted from that origin only.
+const hostOrigin = window.location.origin;
+
+const postToHost = (message: EmbedCeClientMessage) => {
+  parentWindow.postMessage(message, hostOrigin);
+};
+
 // Copied from embed/index.tsx — notifies host that auth + config are done
 const notifyVendorPostAuthentication = () => {
   const authenticationSuccessEvent: EmbedCeClientMessage = {
     type: EmbedCeClientEvent.AUTHENTICATION_SUCCESS,
     data: {},
   };
-  parentWindow.postMessage(authenticationSuccessEvent, '*');
+  postToHost(authenticationSuccessEvent);
   const configurationFinishedEvent: EmbedCeClientMessage = {
     type: EmbedCeClientEvent.CONFIGURATION_FINISHED,
     data: {},
   };
-  parentWindow.postMessage(configurationFinishedEvent, '*');
+  postToHost(configurationFinishedEvent);
 };
 
 // Copied from embed/index.tsx — listens for VENDOR_ROUTE_CHANGED from host
@@ -42,6 +50,7 @@ const handleVendorNavigation = ({ projectId }: { projectId: string }) => {
     event: MessageEvent<EmbedCeHostRouteChangedMessage>,
   ) => {
     if (
+      event.origin === hostOrigin &&
       event.source === parentWindow &&
       event.data.type === EmbedCeHostEvent.ROUTE_CHANGED
     ) {
@@ -77,7 +86,7 @@ const handleClientNavigation = () => {
         route: pathNameWithoutProjectOrProjectId + state.location.search,
       },
     };
-    parentWindow.postMessage(routeChangedEvent, '*');
+    postToHost(routeChangedEvent);
   });
 };
 
@@ -89,6 +98,7 @@ const EmbedCePage = React.memo(() => {
 
   const initState = (event: MessageEvent<EmbedCeHostInitMessage>) => {
     if (
+      event.origin !== hostOrigin ||
       event.source !== parentWindow ||
       event.data.type !== EmbedCeHostEvent.INIT
     ) {
@@ -153,8 +163,6 @@ const EmbedCePage = React.memo(() => {
         hideActiveUsers: event.data.data.hideActiveUsers ?? false,
         hideGlobalSearch: event.data.data.hideGlobalSearch ?? false,
         formulasDocsUrl: event.data.data.formulasDocsUrl,
-        gtmContainerId: event.data.data.gtmContainerId,
-        clarityProjectId: event.data.data.clarityProjectId,
       });
     });
 
@@ -171,7 +179,7 @@ const EmbedCePage = React.memo(() => {
       type: EmbedCeClientEvent.INIT,
       data: {},
     };
-    parentWindow.postMessage(event, '*');
+    postToHost(event);
     window.addEventListener('message', initState);
     return () => {
       window.removeEventListener('message', initState);
