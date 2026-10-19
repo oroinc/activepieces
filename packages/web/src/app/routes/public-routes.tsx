@@ -13,6 +13,7 @@ import { EmbedPage } from './embed';
 import { EmbeddedConnectionDialog } from './embed/embedded-connection-dialog';
 import { EmbeddedMcpAuthorizeDialog } from './embed/embedded-mcp-authorize-dialog';
 import { EmbeddedMcpSettingsDialog } from './embed/embedded-mcp-settings-dialog';
+import { EmbedCePage } from './embed-ce';
 import { McpAuthorizePage } from './mcp-authorize';
 import { RedirectPage } from './redirect';
 
@@ -37,6 +38,10 @@ export const publicRoutes = [
   {
     path: '/embed',
     element: <EmbedPage></EmbedPage>,
+  },
+  {
+    path: '/embed-ce',
+    element: <EmbedCePage></EmbedCePage>,
   },
   {
     path: '/embed/connections',
