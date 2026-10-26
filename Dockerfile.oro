@@ -7,16 +7,29 @@ FROM oven/bun:${BUN_VERSION} AS bun
 FROM ${ORG_BASE_IMAGE}:${ORG_IMAGE_TAG} AS base
 
 ARG NODE_VERSION=24
+# Snapshot of the OroCloud Node.js repository; a newer snapshot brings a newer Node.js release
+ARG NODEJS_REPO_SNAPSHOT=20261005
 
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
 
-# Upgrade base, install all system deps from official repos
+# Node.js and npm come from the OroCloud repository, which ships the patched releases
+# before the distribution's nodejs module stream does. $releasever picks el8 or el9 from
+# the base image; module_hotfixes lets its packages through the nodejs module filter.
+COPY <<EOF /etc/yum.repos.d/orocloud-nodejs.repo
+[orocloud-nodejs]
+name=OroCloud Node.js ${NODE_VERSION}.x RPM repository for Enterprise Linux \$releasever - \$basearch
+baseurl=https://nexus-proxy.oro.cloud/repository/nodejs-${NODE_VERSION}x-${NODEJS_REPO_SNAPSHOT}/el\$releasever/
+enabled=1
+gpgcheck=0
+module_hotfixes=1
+EOF
+
+# Upgrade base, install all system deps from official repos (Node.js from OroCloud)
 RUN --mount=type=cache,target=/var/cache/dnf <<EOR
     set -ex
     microdnf upgrade -y
-    microdnf module enable nodejs:${NODE_VERSION}
     microdnf --setopt=install_weak_deps=0 --best --nodocs -y install \
         curl \
         ca-certificates \
