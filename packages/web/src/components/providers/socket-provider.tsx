@@ -4,10 +4,11 @@ import { toast } from 'sonner';
 
 import { API_BASE_URL } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
+import { basePath } from '@/lib/base-path';
 
 const socket = io(API_BASE_URL, {
   transports: ['websocket'],
-  path: '/api/socket.io',
+  path: `${basePath}api/socket.io`,
   autoConnect: false,
   reconnection: true,
 });

@@ -8,6 +8,10 @@ export const domainHelper = {
     async getPublicUrl({ path }: PublicUrlParams): Promise<string> {
         return networkUtils.combineUrl(system.getOrThrow(AppSystemProp.FRONTEND_URL), path ?? '')
     },
+    getBaseHref(): string {
+        const basePath = getConfiguredBasePath().replace(/^\/+|\/+$/g, '')
+        return basePath ? `/${basePath}/` : '/'
+    },
     getConfiguredPublicUrl(): string {
         return cleanTrailingSlash(system.getOrThrow(AppSystemProp.FRONTEND_URL))
     },
