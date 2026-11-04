@@ -1,14 +1,14 @@
 import fs from 'fs'
 import path from 'path'
-import { apId, spreadIfDefined } from '@activepieces/core-utils'
-import { apLogger, evlogFastify, useWideEventLogger, wideEvent } from '@activepieces/server-utils'
+import { apId, isNil, spreadIfDefined } from '@activepieces/core-utils'
+import { apLogger, evlogFastify, POSTHOG_HOST, useWideEventLogger, wideEvent } from '@activepieces/server-utils'
 import { ApEnvironment, maxSocketHttpBufferSizeBytes } from '@activepieces/shared'
 import cors from '@fastify/cors'
 import formBody from '@fastify/formbody'
 import fastifyHttpProxy from '@fastify/http-proxy'
 import fastifyMultipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
-import fastify, { FastifyInstance } from 'fastify'
+import fastify, { FastifyInstance, FastifyRequest } from 'fastify'
 import { fastifyRawBody } from 'fastify-raw-body'
 import fastifySocketIO from 'fastify-socket'
 import { validatorCompiler } from 'fastify-type-provider-zod'
@@ -69,7 +69,7 @@ export const setupServer = async (): Promise<FastifyInstance> => {
     }
 
     if (system.isApp()) {
-        const posthogIngestionHost = 'https://us.i.posthog.com'
+        const posthogIngestionHost = POSTHOG_HOST
         const posthogAssetsHost = 'https://us-assets.i.posthog.com'
         await app.register(async (ingestScope) => {
             ingestScope.removeAllContentTypeParsers()
@@ -149,15 +149,14 @@ export const setupServer = async (): Promise<FastifyInstance> => {
         })
     }
 
-    app.addHook('onSend', async (request, reply) => {
+    app.addHook('onSend', (request, reply, payload, done) => {
         void reply.header('X-Content-Type-Options', 'nosniff')
         void reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
-        if (!reply.hasHeader('Content-Security-Policy')) {
-            const frameAncestors = await embedSecurity(request.log).getFrameAncestorsHeader({
-                hostname: networkUtils.getRequestHost(request),
-            })
+        const frameAncestors = frameAncestorsByRequest.get(request)
+        if (!reply.hasHeader('Content-Security-Policy') && !isNil(frameAncestors)) {
             void reply.header('Content-Security-Policy', frameAncestors)
         }
+        done(null, payload)
     })
 
     return app
@@ -215,6 +214,12 @@ async function setupBaseApp(): Promise<FastifyInstance> {
 
     await app.register(formBody, { parser: (str) => qs.parse(str) })
     app.setErrorHandler(errorHandler)
+    app.addHook('onRequest', async (request) => {
+        const frameAncestors = await embedSecurity(request.log).getFrameAncestorsHeader({
+            hostname: networkUtils.getRequestHost(request),
+        })
+        frameAncestorsByRequest.set(request, frameAncestors)
+    })
     await app.register(cors, {
         origin: '*',
         exposedHeaders: ['*'],
@@ -267,6 +272,8 @@ async function setupBaseApp(): Promise<FastifyInstance> {
 
     return app
 }
+
+const frameAncestorsByRequest = new WeakMap<FastifyRequest, string>()
 
 const STATIC_FILE_EXTENSIONS = new Set(['.js', '.css', '.map', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'])
 
