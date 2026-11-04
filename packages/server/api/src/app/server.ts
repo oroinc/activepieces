@@ -1,3 +1,4 @@
+import fs from 'fs'
 import path from 'path'
 import { apId, spreadIfDefined } from '@activepieces/core-utils'
 import { apLogger, evlogFastify, useWideEventLogger, wideEvent } from '@activepieces/server-utils'
@@ -17,6 +18,7 @@ import { getAdapter, setupApp } from './app'
 import { oidcDiscoveryController } from './core/security/oidc/oidc-discovery.controller'
 import { websocketService } from './core/websockets.service'
 import { healthModule } from './health/health.module'
+import { domainHelper } from './helper/domain-helper'
 import { embedSecurity } from './helper/embed-security'
 import { enrichWideEventWithError, errorHandler } from './helper/error-handler'
 import { exceptionHandler } from './helper/exception-handler'
@@ -104,6 +106,13 @@ export const setupServer = async (): Promise<FastifyInstance> => {
         const frontendPath = path.resolve(process.cwd(), 'dist/packages/web')
         await app.register(fastifyStatic, {
             root: frontendPath,
+            index: false,
+            redirect: false,
+            allowedPath: (_pathName: string, _root: string, request: { url?: string }) => {
+                const url = request.url ?? ''
+                const cleanUrl = url.split('?')[0]
+                return cleanUrl !== '/' && cleanUrl !== '/index.html'
+            },
             setHeaders: (reply, filepath) => {
                 const normalized = filepath.replace(/\\/g, '/')
                 if (normalized.endsWith('.html')) {
@@ -117,20 +126,28 @@ export const setupServer = async (): Promise<FastifyInstance> => {
                 }
             },
         })
-    }
 
-    app.setNotFoundHandler(async (request, reply) => {
-        if (request.url.startsWith('/api/')) {
-            return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Route not found' })
-        }
-        if (system.isApp() && environment !== ApEnvironment.DEVELOPMENT) {
+        const rawIndexHtml = fs.readFileSync(path.join(frontendPath, 'index.html'), 'utf-8')
+        const indexHtml = rawIndexHtml.replace(
+            /<base\s+href="[^"]*"\s*\/?>/,
+            `<base href="${domainHelper.getBaseHref()}" />`,
+        )
+
+        app.setNotFoundHandler(async (request, reply) => {
+            if (request.url.startsWith('/api/')) {
+                return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Route not found' })
+            }
             if (hasStaticFileExtension(request.url)) {
                 return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Asset not found' })
             }
-            return reply.sendFile('index.html')
-        }
-        return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Route not found' })
-    })
+            return reply.header('Cache-Control', 'no-cache').type('text/html').send(indexHtml)
+        })
+    }
+    else {
+        app.setNotFoundHandler(async (_request, reply) => {
+            return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Route not found' })
+        })
+    }
 
     app.addHook('onSend', async (request, reply) => {
         void reply.header('X-Content-Type-Options', 'nosniff')
@@ -293,5 +310,3 @@ function convertDatesToStrings(data: unknown): unknown {
     }
     return data
 }
-
-

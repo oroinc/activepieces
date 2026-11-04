@@ -1,6 +1,7 @@
 .angular
 .dockerignore
 **/.env
+**/.env.*
 .git
 .gitattributes
 .github
