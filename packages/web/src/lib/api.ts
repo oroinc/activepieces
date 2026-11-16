@@ -10,6 +10,7 @@ import axios, {
 import qs from 'qs';
 
 import { authenticationSession } from '@/lib/authentication-session';
+import { basePath } from '@/lib/base-path';
 import { chatDebug } from '@/lib/chat-debug-logger';
 import { editorSession } from '@/lib/editor-session';
 export const CLOUD_HOSTNAME = 'cloud.activepieces.com';
@@ -21,7 +22,7 @@ export const API_BASE_URL = isRunningCloudInDevMode
   : typeof window !== 'undefined'
   ? window.location.origin
   : '';
-export const API_URL = `${API_BASE_URL}/api`;
+export const API_URL = `${API_BASE_URL}${basePath}api`;
 
 const disallowedRoutes = [
   '/v1/managed-authn/external-token',
@@ -55,7 +56,8 @@ function globalErrorHandler(error: AxiosError) {
     ) {
       authenticationSession.logOut();
       console.log(errorCode);
-      window.location.href = '/sign-in';
+      // CUSTOMIZATION: use BASE_URL so the redirect lands on the correct subpath
+      window.location.href = `${basePath}sign-in`;
     }
   }
 }

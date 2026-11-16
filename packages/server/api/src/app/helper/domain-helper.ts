@@ -12,6 +12,10 @@ export const domainHelper = {
         const { origin } = new URL(system.getOrThrow(AppSystemProp.FRONTEND_URL))
         return networkUtils.cleanTrailingSlash(networkUtils.combineUrl(origin, path ?? ''))
     },
+    getBaseHref(): string {
+        const basePath = getConfiguredBasePath().replace(/^\/+|\/+$/g, '')
+        return basePath ? `/${basePath}/` : '/'
+    },
     getConfiguredPublicUrl(): string {
         return networkUtils.cleanTrailingSlash(system.getOrThrow(AppSystemProp.FRONTEND_URL))
     },

@@ -1,6 +1,7 @@
 import { isNil } from '@activepieces/core-utils';
 import { useSearchParams } from 'react-router-dom';
 
+import { basePath } from '@/lib/base-path';
 import { federatedLoginRedirect } from '@/lib/federated-login-redirect';
 import { FROM_QUERY_PARAM } from '@/lib/navigation-utils';
 
@@ -14,7 +15,7 @@ export function useStartSamlLogin() {
   };
 }
 
-const SAML_LOGIN_PATH = '/api/v1/authn/saml/login';
+const SAML_LOGIN_PATH = `${basePath}api/v1/authn/saml/login`;
 
 type StartSamlLoginParams = {
   platformId?: string;

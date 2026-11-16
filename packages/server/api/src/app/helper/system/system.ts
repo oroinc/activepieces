@@ -43,6 +43,7 @@ const systemPropDefaultValues: Partial<Record<SystemProp, string>> = {
     [AppSystemProp.FLOW_RUN_LOG_INPUT_TRUNCATE_THRESHOLD_KB]: '2',
     [AppSystemProp.FLOW_RUN_LOG_SLICE_THRESHOLD_KB]: '32',
     [AppSystemProp.MAX_WEBHOOK_PAYLOAD_SIZE_MB]: '25',
+    [AppSystemProp.TEMPLATES_SOURCE_URL]: 'https://cloud.activepieces.com/api/v1/templates',
     [AppSystemProp.WEBHOOK_PAYLOAD_INLINE_THRESHOLD_KB]: '512',
     [AppSystemProp.FILE_STORAGE_LOCATION]: FileLocation.DB,
     [AppSystemProp.SANDBOX_MEMORY_LIMIT]: '1048576',
