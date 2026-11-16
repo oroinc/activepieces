@@ -6,12 +6,14 @@ variable "GIT_URL" { default = null }
 variable "BUILD_TIMESTAMP" { default = null }
 variable "GIT_BRANCH" { default = null }
 variable "TAG_NAME" { default = null }
+# Set by the Jenkinsfile: "true" when TAG_NAME is the highest patched release, so only it moves "latest"
+variable "PROMOTE_LATEST" { default = "false" }
 
 variable "extra_tags" {
   default = concat(
     GIT_BRANCH == "integration/oro-apps" ? ["development"] : [],
     GIT_BRANCH == null ? [] : [for m in regexall("^release/(.+)$", GIT_BRANCH) : "test-release-${m[0]}"],
-    TAG_NAME != null && length(regexall("-patched$", "${TAG_NAME}")) > 0 ? [TAG_NAME, "latest"] : [],
+    TAG_NAME != null && length(regexall("-patched$", "${TAG_NAME}")) > 0 ? concat([TAG_NAME], PROMOTE_LATEST == "true" ? ["latest"] : []) : [],
   )
 }
 
