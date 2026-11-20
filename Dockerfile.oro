@@ -126,6 +126,10 @@ RUN --mount=type=cache,target=/root/.bun/install/cache <<EOR
       const names = getMigrations().map(M => new M().name);\
       process.stdout.write(JSON.stringify(names));\
     " > packages/server/api/dist/src/migration-manifest.json
+    # The image bun.lock below does not list the libraries that Vite bundles into
+    # dist/packages/web. Make a second lockfile for them for the dependency scan.
+    node scripts/web-lockfile.oro.js . /tmp/web-lockfile
+    (cd /tmp/web-lockfile && bun install --lockfile-only --no-progress)
     # Remove workspaces not needed at runtime. The web build is already in dist/packages/web.
     rm -rf packages/pieces/core packages/pieces/custom \
         packages/web packages/cli packages/tests-e2e packages/ee
@@ -190,6 +194,8 @@ COPY --link --from=prod-deps /var/lib/activepieces/node_modules ./node_modules
 COPY --link --from=prod-deps /var/lib/activepieces/packages ./packages
 COPY --link --from=builder /var/lib/activepieces/dist/packages/engine ./dist/packages/engine
 COPY --link --from=builder /var/lib/activepieces/dist/packages/web ./dist/packages/web
+# Scan input for the browser code. The server does not serve this path.
+COPY --link --from=builder /tmp/web-lockfile/bun.lock ./sbom/web/bun.lock
 
 RUN <<EOR
     set -ex
