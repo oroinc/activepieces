@@ -37,6 +37,7 @@ export type EmbedCeHostInitMessage = {
     mode?: 'light' | 'dark';
     hideSidebar: boolean;
     hideFlowNameInBuilder?: boolean;
+    hideConnectionsInBuilder?: boolean;
     disableNavigationInBuilder: boolean | 'keep_home_button_only';
     hideFolders?: boolean;
     hideTables?: boolean;
@@ -46,6 +47,7 @@ export type EmbedCeHostInitMessage = {
     hidePageHeader?: boolean;
     hideActiveUsers?: boolean;
     hideGlobalSearch?: boolean;
+    hideReplaceConnection?: boolean;
     emitHomeButtonClickedEvent?: boolean;
     homeButtonIcon?: 'back' | 'logo';
     sdkVersion?: string;
